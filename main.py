@@ -1,8 +1,18 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
 from twilio.rest import Client
+import logging
 import os
+import time
 from fastapi.middleware.cors import CORSMiddleware
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+
+logger = logging.getLogger("uvicorn")
 
 # Twilio credentials (replace with your own Twilio credentials)
 TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID')
@@ -22,6 +32,26 @@ allow_credentials=True,
 allow_methods=["*"],
 allow_headers=["*"]
 )
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start_time = time.time()
+    
+    # Log request method, URL, and headers
+    logger.info(f"Request: {request.method} {request.url}")
+    
+    # Log request body (input data)
+    body = await request.body()
+    logger.info(f"Request Body: {body.decode('utf-8')}")
+    
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    
+    # Log response status code and processing time
+    logger.info(f"Response Status Code: {response.status_code}")
+    logger.info(f"Process time: {process_time:.4f} seconds")
+    
+    return response
 
 # Pydantic model for request body
 class MessageRequest(BaseModel):
