@@ -73,6 +73,7 @@ async def send_messages(request: MessageRequest):
     response_list = []
     for number in numbers:
         number_cell = f"+{number.lstrip('+')}"
+        logger.info(f"VER NUMBER: {number_cell}")
         try:
             message_response = client.messages.create(
                 from_=TWILIO_WHATSAPP_NUMBER,
