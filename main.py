@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from twilio.rest import Client
 import os
+from fastapi.middleware.cors import CORSMiddleware
 
 # Twilio credentials (replace with your own Twilio credentials)
 TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID')
@@ -13,6 +14,14 @@ client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
 # FastAPI app
 app = FastAPI()
+
+app.add_middleware(
+CORSMiddleware,
+allow_origin=["*"],
+allow_credentials=True,
+allow_methods=["*"],
+allow_headers=["*"]
+)
 
 # Pydantic model for request body
 class MessageRequest(BaseModel):
