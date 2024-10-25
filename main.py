@@ -81,8 +81,3 @@ async def send_messages(request: EventRequest):
             })
 
     return {"results": response_list}
-
-# Start the server with Uvicorn
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
