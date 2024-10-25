@@ -4,8 +4,8 @@ from twilio.rest import Client
 import os
 
 # Twilio credentials (replace with your own Twilio credentials)
-TWILIO_ACCOUNT_SID = 'AC5e6d1138266f10939e645b64f75c76ba'
-TWILIO_AUTH_TOKEN = '8fe9162493c961327fc77b77bad112ee'
+TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID')
+TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN')
 TWILIO_WHATSAPP_NUMBER = 'whatsapp:+14155238886'  # Twilio WhatsApp sandbox number
 
 # Initialize the Twilio client
@@ -81,8 +81,3 @@ async def send_messages(request: EventRequest):
             })
 
     return {"results": response_list}
-
-# Start the server with Uvicorn
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
