@@ -72,20 +72,21 @@ async def send_messages(request: MessageRequest):
     # Send message to each recipient
     response_list = []
     for number in numbers:
+        number_cell = f"+{number.lstrip('+')}"
         try:
             message_response = client.messages.create(
                 from_=TWILIO_WHATSAPP_NUMBER,
                 body=message,
-                to=f'whatsapp:{number}'  # Send as WhatsApp message
+                to=f'whatsapp:{number_cell}'  # Send as WhatsApp message
             )
             response_list.append({
-                "to": number,
+                "to": number_cell,
                 "status": "success",
                 "message_sid": message_response.sid
             })
         except Exception as e:
             response_list.append({
-                "to": number,
+                "to": number_cell,
                 "status": "failed",
                 "error": str(e)
             })
@@ -100,21 +101,22 @@ async def send_messages(request: EventRequest):
 
     response_list = []
     for number in list_numbers:
+        number_cell = f"+{number.lstrip('+')}"
         try:
             message_response = client.messages.create(
                     from_='whatsapp:+14155238886',
                     content_sid='HXb5b62575e6e4ff6129ad7c8efe1f983e',
                     content_variables='{"1":"%s","2":"%s"}' %(str(str_date),str(str_hora)),
-                    to=f'whatsapp:{number}'
+                    to=f'whatsapp:{number_cell}'
                     )
             response_list.append({
-                "to": number,
+                "to": number_cell,
                 "status": "success",
                 "message_sid": message_response.sid
             })
         except Exception as e:
             response_list.append({
-                "to": number,
+                "to": number_cell,
                 "status": "failed",
                 "error": str(e)
             })
