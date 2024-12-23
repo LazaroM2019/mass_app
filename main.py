@@ -8,9 +8,10 @@ import traceback
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo import MongoClient
 from utils.token_management import refresh_token_task
-from services.mongo_database import save_message_to_mongodb
+from services.mongo_database import save_to_mongodb
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
+from services.chatgpt import ChatGpt, MODELS, PROMPT, SYSTEM_INSTRUCTION
 from dotenv import load_dotenv
 
 # Configure logging
@@ -159,6 +160,15 @@ async def send_messages(request: MessageRequest):
 
 # Route to send a WhatsApp message to improved with ChatGpt
 @app.post("/ai/suggestion")
-async def send_messages(request: MessageRequest):
+async def chat_suggestion(request: AiSuggestion):
     title_msg = request.title
     message = request.message
+
+    chat = ChatGpt(MODELS['GPT_4O_mini'], SYSTEM_INSTRUCTION)
+
+    prompt = PROMPT.replace("__TEXT_TITLE__", title_msg)
+    prompt = prompt.replace("__TEXT_MESSAGE__", message)
+
+    outputs = chat.generate(prompt=prompt, respose_format=AiSuggestion)
+
+    return outputs
