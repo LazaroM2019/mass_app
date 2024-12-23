@@ -45,7 +45,7 @@ client = MongoClient(CONNECTION_STRING)
 
 # Access the database and collection
 database = client[DATABASE_NAME]
-collection = database[COLLECTION_NAME]
+# collection = database[COLLECTION_NAME]
 
 
 # FastAPI app
@@ -102,14 +102,15 @@ class MessageRequest(BaseModel):
     message: str
     numbers: list[str]  # List of recipient phone numbers
     userId: int
+    image: str
+    date: str
 
-class EventRequest(BaseModel):
-    date_event: str
-    hora_event: str
-    numbers: list[str] 
+class AiSuggestion(BaseModel):
+    title: str
+    message: str
 
 # Route to send a WhatsApp message to multiple recipients
-@app.post("/send-messages/")
+@app.post("/chat/send")
 async def send_messages(request: MessageRequest):
     title_msg = request.title
     message = request.message
@@ -118,7 +119,6 @@ async def send_messages(request: MessageRequest):
     # Send message to each recipient
     response_list = []
     for number in numbers:
-        # number_cell = f"+{number.lstrip('+')}"
         try:
             formatted_message = f"*{title_msg}*\n\n{message}"
             payload = {
@@ -139,7 +139,7 @@ async def send_messages(request: MessageRequest):
                     "status": "success",
                     "message_sid": response.json()
                 })
-                save_message_to_mongodb(collection,formatted_message)
+                # save_message_to_mongodb(collection,formatted_message)
             else:
                 logger.error(f"Failed to send message to {number}: {response.text}")
                 response_list.append({
@@ -156,3 +156,9 @@ async def send_messages(request: MessageRequest):
             })
 
     return {"results": response_list}
+
+# Route to send a WhatsApp message to improved with ChatGpt
+@app.post("/ai/suggestion")
+async def send_messages(request: MessageRequest):
+    title_msg = request.title
+    message = request.message
