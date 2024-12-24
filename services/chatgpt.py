@@ -4,7 +4,7 @@ from typing import Optional
 import os
 
 MODELS = {
-    "GPT_4O_mini": "gpt-3.5-turbo"
+    "GPT_4O_mini": "gpt-4o-mini-2024-07-18"
 }
 
 PROMPT = """
@@ -21,6 +21,7 @@ more engaging, emphasizing the offer's benefits, and including a clear CTA.
 
 <Start Specifications>
 - The lenguage of title and message are in spanish, return them in spanish too.
+- Remove this type of characteres "\n"
 </End Specification>
 """
 
@@ -50,7 +51,9 @@ class MessageImproved(BaseModel):
 
 class ChatGpt:
     def __init__(self, model:str, system_instruction: Optional[str]=None, temperature=0.1):
-        self.client = OpenAI(api_key=os.getenv("CHATGPT_KEY"))
+        self.client = OpenAI(organization=os.getenv("ORGANIZATION_ID"),
+                             project=os.getenv("PROJECT_ID"),
+                             api_key=os.getenv("CHATGPT_KEY"))
         self.model = model
         self.tokens = 9000
         self.system_instruction = system_instruction

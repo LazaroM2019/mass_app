@@ -6,12 +6,14 @@ import time
 import requests
 import traceback
 from fastapi.middleware.cors import CORSMiddleware
-from pymongo import MongoClient
+# from pymongo import MongoClient
 from utils.token_management import refresh_token_task
-from services.mongo_database import save_to_mongodb
+from services.whatsapp import schedule_whatsapp_message, send_whatsapp_message
+# from services.mongo_database import save_to_mongodb
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from services.chatgpt import ChatGpt, MODELS, PROMPT, SYSTEM_INSTRUCTION
+from datetime import datetime
 from dotenv import load_dotenv
 
 # Configure logging
@@ -24,28 +26,16 @@ load_dotenv()
 
 logger = logging.getLogger("uvicorn")
 
-# Twilio credentials (replace with your own Twilio credentials)
-WHATSAPP_ACCOUNT_SID = os.getenv('WHATSAPP_ACCOUNT_SID')
-WHATSAPP_AUTH_TOKEN = os.getenv('WHATSAPP_AUTH_TOKEN')
-
-# WHATSAPP API ENDPOINT
-URL_WHATSAPP = f"https://graph.facebook.com/v21.0/{WHATSAPP_ACCOUNT_SID}/messages"
-
-HEADERS = {
-    "Authorization": f"Bearer {WHATSAPP_AUTH_TOKEN}",
-    "Content-Type": "application/json"
-}
-
 # MongoDB connection settings
-CONNECTION_STRING = os.getenv("MONGODB_CONNECTION_STRING")
-DATABASE_NAME = os.getenv("MONGODB_DATABASE_NAME")
-COLLECTION_NAME = os.getenv("MONGODB_COLLECTION_NAME")
+# CONNECTION_STRING = os.getenv("MONGODB_CONNECTION_STRING")
+# DATABASE_NAME = os.getenv("MONGODB_DATABASE_NAME")
+# COLLECTION_NAME = os.getenv("MONGODB_COLLECTION_NAME")
 
 # Connect to MongoDB
-client = MongoClient(CONNECTION_STRING)
+# client = MongoClient(CONNECTION_STRING)
 
 # Access the database and collection
-database = client[DATABASE_NAME]
+# database = client[DATABASE_NAME]
 # collection = database[COLLECTION_NAME]
 
 
@@ -60,21 +50,21 @@ allow_methods=["*"],
 allow_headers=["*"]
 )
 
-scheduler = BackgroundScheduler()
+# scheduler = BackgroundScheduler()
 
-scheduler.add_job(
-    refresh_token_task,
-    trigger=IntervalTrigger(days=50),
-    id="refresh_token_task",
-    replace_existing=True
-)
+# scheduler.add_job(
+#     refresh_token_task,
+#     trigger=IntervalTrigger(days=50),
+#     id="refresh_token_task",
+#     replace_existing=True
+# )
 
 # Start the scheduler
-scheduler.start()
+# scheduler.start()
 
-@app.on_event("shutdown")
-def shutdown_event():
-    scheduler.shutdown()
+# @app.on_event("shutdown")
+# def shutdown_event():
+#     scheduler.shutdown()
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -116,47 +106,23 @@ async def send_messages(request: MessageRequest):
     title_msg = request.title
     message = request.message
     numbers = request.numbers
-    
+    send_time_str = request.date
+
+    try:
+        send_time = datetime.strptime(send_time_str, "%Y-%m-%d %H:%M:%S")
+    except ValueError as e:
+        return {"error": f"Invalid date format. Expected 'YYYY-MM-DD HH:MM:SS'. Got: {send_time_str}"}
+
+    if send_time > datetime.now():
+        schedule_whatsapp_message(title_msg, message, numbers, send_time)
+        return {"status": "scheduled", "message": f"Message scheduled for {send_time}"}
+    else:
     # Send message to each recipient
-    response_list = []
-    for number in numbers:
-        try:
-            formatted_message = f"*{title_msg}*\n\n{message}"
-            payload = {
-                "messaging_product": "whatsapp",
-                "to": number,
-                "type": "text",
-                "text": {
-                    "body": formatted_message
-                }
-            }
-            # send the request
-            response = requests.post(URL_WHATSAPP, headers=HEADERS, json=payload)
-
-            if response.status_code == 200:
-                logger.info(response.json())
-                response_list.append({
-                    "to": number,
-                    "status": "success",
-                    "message_sid": response.json()
-                })
-                # save_message_to_mongodb(collection,formatted_message)
-            else:
-                logger.error(f"Failed to send message to {number}: {response.text}")
-                response_list.append({
-                    "to": number,
-                    "status": "failed",
-                    "error": response.text
-                })
-        except Exception as e:
-            traceback.print_exc()
-            response_list.append({
-                "to": number,
-                "status": "failed",
-                "error": str(e)
-            })
-
-    return {"results": response_list}
+        response_list = []
+        for number in numbers:
+            result = send_whatsapp_message(number, f"*{title_msg}*\n\n{message}")
+            response_list.append({"to": number, **result})
+        return {"status": "sent", "results": response_list}
 
 # Route to send a WhatsApp message to improved with ChatGpt
 @app.post("/ai/suggestion")
