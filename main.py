@@ -93,7 +93,7 @@ class MessageRequest(BaseModel):
     title: str
     message: str
     numbers: list[str]  # List of recipient phone numbers
-    userId: str
+    userId: int
     image: str
     date: str
 
