@@ -14,6 +14,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from services.chatgpt import ChatGpt, MODELS, PROMPT, SYSTEM_INSTRUCTION
 from datetime import datetime
+import pytz
 from dotenv import load_dotenv
 
 # Configure logging
@@ -92,7 +93,7 @@ class MessageRequest(BaseModel):
     title: str
     message: str
     numbers: list[str]  # List of recipient phone numbers
-    userId: int
+    userId: str
     image: str
     date: str
 
@@ -106,15 +107,26 @@ async def send_messages(request: MessageRequest):
     title_msg = request.title
     message = request.message
     numbers = request.numbers
+    image = request.image
     send_time_str = request.date
 
     try:
-        send_time = datetime.strptime(send_time_str, "%Y-%m-%d %H:%M:%S")
+        # Parse the input UTC datetime string
+        utc_datetime = datetime.strptime(send_time_str, "%Y-%m-%dT%H:%M:%S.%fZ")
+        
+        # Assign UTC timezone to the parsed datetime
+        utc_datetime = utc_datetime.replace(tzinfo=pytz.UTC)
+        
+        # Convert UTC datetime to Montevideo timezone (UTC-3)
+        montevideo_tz = pytz.timezone("America/Montevideo")
+        local_datetime = utc_datetime.astimezone(montevideo_tz)
     except ValueError as e:
         return {"error": f"Invalid date format. Expected 'YYYY-MM-DD HH:MM:SS'. Got: {send_time_str}"}
 
-    if send_time > datetime.now():
-        schedule_whatsapp_message(title_msg, message, numbers, send_time)
+    if local_datetime > datetime.now(montevideo_tz):
+        # Format the datetime as needed (optional)
+        send_time = local_datetime.strftime("%Y-%m-%d %H:%M:%S")
+        schedule_whatsapp_message(title_msg, message, numbers, send_time, image, title_msg)
         return {"status": "scheduled", "message": f"Message scheduled for {send_time}"}
     else:
     # Send message to each recipient
