@@ -112,7 +112,7 @@ async def send_messages(request: MessageRequest):
 
     try:
         # Parse the input UTC datetime string
-        utc_datetime = datetime.strptime(send_time_str, "%Y-%m-%dT%H:%M:%S.%fZ")
+        utc_datetime = datetime.strptime(send_time_str, "%Y-%m-%dT%H:%M:%S")
         
         # Assign UTC timezone to the parsed datetime
         utc_datetime = utc_datetime.replace(tzinfo=pytz.UTC)
