@@ -128,10 +128,6 @@ async def send_messages(request: MessageRequest):
         send_time = local_datetime.strftime("%Y-%m-%d %H:%M:%S")
         schedule_whatsapp_message(title_msg, message, numbers, send_time)
         return {"status": "scheduled", "message": f"Message scheduled for {send_time}"}
-    elif datetime.now(montevideo_tz) < (local_datetime + timedelta(hours=3)) < datetime.now(montevideo_tz) + timedelta(minutes=8):
-        send_time = (local_datetime + timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")
-        schedule_whatsapp_message(title_msg, message, numbers, send_time)
-        return {"status": "scheduled", "message": f"Message scheduled for {send_time}"}
     else:
     # Send message to each recipient
         response_list = []
