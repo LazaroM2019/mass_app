@@ -1,6 +1,7 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 import requests
 import os
+from utils.logger import logger
 
 # Initialize the scheduler (ensure it's started only once)
 scheduler = BackgroundScheduler()

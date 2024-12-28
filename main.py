@@ -121,7 +121,7 @@ async def send_messages(request: MessageRequest):
         montevideo_tz = pytz.timezone("America/Montevideo")
         local_datetime = utc_datetime.astimezone(montevideo_tz)
     except ValueError as e:
-        return {"error": f"Invalid date format. Expected 'YYYY-MM-DD HH:MM:SS'. Got: {send_time_str}"}
+        return {"error": f"Invalid date format. Expected in UTC format. Got: {send_time_str}"}
 
     if local_datetime > datetime.now(montevideo_tz):
         # Format the datetime as needed (optional)
