@@ -126,7 +126,7 @@ async def send_messages(request: MessageRequest):
     if local_datetime > datetime.now(montevideo_tz):
         # Format the datetime as needed (optional)
         send_time = local_datetime.strftime("%Y-%m-%d %H:%M:%S")
-        schedule_whatsapp_message(title_msg, message, numbers, send_time, image, title_msg)
+        schedule_whatsapp_message(title_msg, message, numbers, send_time)
         return {"status": "scheduled", "message": f"Message scheduled for {send_time}"}
     else:
     # Send message to each recipient
