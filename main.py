@@ -13,7 +13,7 @@ from services.whatsapp import schedule_whatsapp_message, send_whatsapp_message
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from services.chatgpt import ChatGpt, MODELS, PROMPT, SYSTEM_INSTRUCTION
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 from dotenv import load_dotenv
 
@@ -126,6 +126,10 @@ async def send_messages(request: MessageRequest):
     if local_datetime > datetime.now(montevideo_tz):
         # Format the datetime as needed (optional)
         send_time = local_datetime.strftime("%Y-%m-%d %H:%M:%S")
+        schedule_whatsapp_message(title_msg, message, numbers, send_time)
+        return {"status": "scheduled", "message": f"Message scheduled for {send_time}"}
+    elif datetime.now(montevideo_tz) < (local_datetime + timedelta(hours=3)) < datetime.now(montevideo_tz) + timedelta(minutes=8):
+        send_time = (local_datetime + timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")
         schedule_whatsapp_message(title_msg, message, numbers, send_time)
         return {"status": "scheduled", "message": f"Message scheduled for {send_time}"}
     else:
