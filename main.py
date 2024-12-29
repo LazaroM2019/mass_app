@@ -13,7 +13,7 @@ from services.whatsapp import schedule_whatsapp_message, send_whatsapp_message
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from services.chatgpt import ChatGpt, MODELS, PROMPT, SYSTEM_INSTRUCTION
-from datetime import datetime, timedelta
+from datetime import datetime, timezone
 import pytz
 from dotenv import load_dotenv
 
@@ -118,14 +118,14 @@ async def send_messages(request: MessageRequest):
         utc_datetime = utc_datetime.replace(tzinfo=pytz.UTC)
         
         # Convert UTC datetime to Montevideo timezone (UTC-3)
-        montevideo_tz = pytz.timezone("America/Montevideo")
-        local_datetime = utc_datetime.astimezone(montevideo_tz)
+        # montevideo_tz = pytz.timezone("America/Montevideo")
+        # local_datetime = utc_datetime.astimezone(montevideo_tz)
     except ValueError as e:
         return {"error": f"Invalid date format. Expected in UTC format. Got: {send_time_str}"}
 
-    if local_datetime > datetime.now(montevideo_tz):
+    if utc_datetime > datetime.now(timezone.utc):
         # Format the datetime as needed (optional)
-        send_time = local_datetime.strftime("%Y-%m-%d %H:%M:%S")
+        send_time = utc_datetime.strftime("%Y-%m-%d %H:%M:%S")
         schedule_whatsapp_message(title_msg, message, numbers, send_time)
         return {"status": "scheduled", "message": f"Message scheduled for {send_time}"}
     else:
