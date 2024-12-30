@@ -22,6 +22,7 @@ more engaging, emphasizing the offer's benefits, and including a clear CTA.
 <Start Specifications>
 - The lenguage of title and message are in spanish, return them in spanish too.
 - Remove this type of characteres "\n"
+- Add emoji to message
 </End Specification>
 """
 
