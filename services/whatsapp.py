@@ -20,12 +20,27 @@ HEADERS = {
 }
 
 # Function to send a WhatsApp message
-def send_whatsapp_message(number, formatted_message):
+def send_whatsapp_message(number, title_front, text_front):
     payload = {
         "messaging_product": "whatsapp",
         "to": number,
-        "type": "text",
-        "text": {"body": formatted_message}
+        "type": "template",
+        "template": {
+            "name": "dynamic_params",
+            "language": {
+                "code": "en"
+            },
+            "components": [
+                {
+                    "type": "header",
+                    "parameters": [{"type": "text","text": title_front}]
+                },
+                {
+                    "type": "body",
+                    "parameters": [{"type": "text", "text": text_front}]
+                }
+                ]
+        }
     }
     try:
         response = requests.post(URL_WHATSAPP, headers=HEADERS, json=payload)
@@ -74,7 +89,7 @@ def schedule_whatsapp_message(title, message, numbers, send_time):
             send_whatsapp_message,
             'date',
             run_date=send_time,
-            args=[number, formatted_message]
+            args=[number, title, message]
         )
 
 # Function to schedule a WhatsApp message

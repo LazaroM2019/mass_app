@@ -132,7 +132,7 @@ async def send_messages(request: MessageRequest):
     # Send message to each recipient
         response_list = []
         for number in numbers:
-            result = send_whatsapp_message(number, f"*{title_msg}*\n\n{message}")
+            result = send_whatsapp_message(number, title_msg, message)
             response_list.append({"to": number, **result})
         return {"status": "sent", "results": response_list}
 
@@ -150,3 +150,24 @@ async def chat_suggestion(request: AiSuggestion):
     outputs = chat.generate(prompt=prompt, respose_format=AiSuggestion)
 
     return outputs
+
+@app.post("/webhook")
+async def webhook(request: Request):
+    try:
+        # Parse the incoming JSON
+        data = await request.json()
+
+        # Handle statuses if provided in the payload
+        statuses = data.get("statuses", [])
+        for status in statuses:
+            message_id = status.get("id")
+            message_status = status.get("status")  # Example: 'read', 'delivered', etc.
+            recipient_id = status.get("recipient_id")
+
+            if message_status == "read":
+                print(f"Message {message_id} to recipient {recipient_id} was read!")
+        
+        return {"status": "success"}
+    except Exception as e:
+        print(f"Error processing webhook: {e}")
+        return {"status": "error", "message": str(e)}
