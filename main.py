@@ -133,6 +133,7 @@ async def send_messages(request: MessageRequest):
         response_list = []
         for number in numbers:
             result = send_whatsapp_message(number, title_msg, message)
+            logger.info(f"Main: whatsapp result: {result}")
             response_list.append({"to": number, **result})
         return {"status": "sent", "results": response_list}
 
