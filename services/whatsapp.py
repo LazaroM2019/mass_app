@@ -21,6 +21,7 @@ HEADERS = {
 
 # Function to send a WhatsApp message
 def send_whatsapp_message(number, title_front, text_front):
+    message = text_front.replace("\n", "")
     payload = {
         "messaging_product": "whatsapp",
         "to": number,
