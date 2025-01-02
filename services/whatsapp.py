@@ -21,7 +21,8 @@ HEADERS = {
 
 # Function to send a WhatsApp message
 def send_whatsapp_message(number, title_front, text_front):
-    message = text_front.replace("\n", "")
+    title = title_front.replace("\n", "")
+    message = text_front.replace("\n", "").replace("\r", "")
     payload = {
         "messaging_product": "whatsapp",
         "to": number,
@@ -34,11 +35,11 @@ def send_whatsapp_message(number, title_front, text_front):
             "components": [
                 {
                     "type": "header",
-                    "parameters": [{"type": "text","text": title_front}]
+                    "parameters": [{"type": "text","text": title}]
                 },
                 {
                     "type": "body",
-                    "parameters": [{"type": "text", "text": text_front}]
+                    "parameters": [{"type": "text", "text": message}]
                 }
                 ]
         }
