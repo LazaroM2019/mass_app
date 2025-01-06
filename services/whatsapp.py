@@ -28,7 +28,7 @@ def send_whatsapp_message(number, title_front, text_front):
         "to": number,
         "type": "template",
         "template": {
-            "name": "dynamic_params",
+            "name": "general_dynamic_message",
             "language": {
                 "code": "en"
             },
