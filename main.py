@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Query
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 import logging
 import os
@@ -159,16 +160,36 @@ async def webhook(request: Request):
         data = await request.json()
 
         # Handle statuses if provided in the payload
-        statuses = data.get("statuses", [])
+        statuses = data.get("entry", [])
         for status in statuses:
-            message_id = status.get("id")
-            message_status = status.get("status")  # Example: 'read', 'delivered', etc.
-            recipient_id = status.get("recipient_id")
+            changes = status.get("changes")[0]["value"]
+            client_name = changes.get("contacts")[0].get("profile").get("name")  # Example: 'read', 'delivered', etc.
+            messages = changes.get("messages")[0]
+            phone_number_client = messages.get("from")
+            whatsapp_message_id = message.get("id")
+            message = messages.get("text").get("body")
 
-            if message_status == "read":
-                print(f"Message {message_id} to recipient {recipient_id} was read!")
+            if len(message) > 0:
+                print(f"Message: {message}")
         
         return {"status": "success"}
     except Exception as e:
         print(f"Error processing webhook: {e}")
         return {"status": "error", "message": str(e)}
+    
+# @app.get("/webhook")
+# async def verify_webhook(mode: str, token: str, challenge: str):
+#     VERIFY_TOKEN = "2rHZurQoDiVDJR48WooJJeZFVN2_2rStqXtnSs2iGb2QwAS9o"
+#     if mode == "subscribe" and token == VERIFY_TOKEN:
+#         return PlainTextResponse(challenge)  # Respond with the challenge
+#     return {"error": "Verification failed"}
+@app.get("/webhook")
+async def verify_webhook(
+    hub_mode: str = Query(..., alias="hub.mode"),
+    hub_challenge: str = Query(..., alias="hub.challenge"),
+    hub_verify_token: str = Query(..., alias="hub.verify_token")
+):
+    VERIFY_TOKEN = "2rHZurQoDiVDJR48WooJJeZFVN2_2rStqXtnSs2iGb2QwAS9o"
+    if hub_mode == "subscribe" and hub_verify_token == VERIFY_TOKEN:
+        return PlainTextResponse(hub_challenge)  # Respond with the challenge string
+    return {"error": "Verification failed"}

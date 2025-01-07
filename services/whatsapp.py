@@ -45,6 +45,7 @@ def send_whatsapp_message(number, title_front, text_front):
         }
     }
     try:
+        logger.info(f"URL: {URL_WHATSAPP}")
         response = requests.post(URL_WHATSAPP, headers=HEADERS, json=payload)
         if response.status_code == 200:
             return {"status": "success", "message_sid": response.json()}
