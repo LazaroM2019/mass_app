@@ -171,7 +171,7 @@ async def webhook(request: Request):
             message = messages.get("text").get("body")
 
             if len(message) > 0:
-                print(f"Message: {message}")
+                logger.info(f"Message: {message}")
         
         return {"status": "success"}
     except Exception as e:
