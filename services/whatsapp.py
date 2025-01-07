@@ -13,7 +13,7 @@ scheduler.start()
 WHATSAPP_AUTH_TOKEN = os.getenv('WHATSAPP_AUTH_TOKEN')
 
 HEADERS = {
-    "Authorization": f"Bearer EAAHvcois4VUBO5oSt4JWrm4wPczeQDEsZC6b3N6qeGc19jDh8hf3SLmOd2Q1ZBXvUzZCbHqQrgcIhgjgrwYIzPG5LdBAElUudLhjnFUN4GotyLG4BxJ47a6sqVJH12c4ZBDMIKKW49rFXSkUTAtCcAnZAZAAuS9Vava9ZCfZBeZARDHnJXABLUDpVFwxTtEfdCQjyLnGuIsNp7RcxYaWpxbMr0d3k3QjJK2z6URb8rkHZA",
+    "Authorization": f"Bearer {WHATSAPP_AUTH_TOKEN}",
     "Content-Type": "application/json"
 }
 
