@@ -118,15 +118,11 @@ async def send_messages(request: MessageRequest):
         
         # Assign UTC timezone to the parsed datetime
         utc_datetime = utc_datetime.replace(tzinfo=pytz.UTC)
-        
-        # Convert UTC datetime to Montevideo timezone (UTC-3)
-        # montevideo_tz = pytz.timezone("America/Montevideo")
-        # local_datetime = utc_datetime.astimezone(montevideo_tz)
     except ValueError as e:
         return {"error": f"Invalid date format. Expected in UTC format. Got: {send_time_str}"}
 
     if utc_datetime > datetime.now(timezone.utc):
-        # Format the datetime as needed (optional)
+        # Format the datetime as needed
         send_time = utc_datetime.strftime("%Y-%m-%d %H:%M:%S")
         schedule_whatsapp_message(user_id, title_msg, message, numbers, send_time)
         return {"status": "scheduled", "message": f"Message scheduled for {send_time}"}
@@ -178,12 +174,7 @@ async def webhook(request: Request):
         print(f"Error processing webhook: {e}")
         return {"status": "error", "message": str(e)}
     
-# @app.get("/webhook")
-# async def verify_webhook(mode: str, token: str, challenge: str):
-#     VERIFY_TOKEN = "2rHZurQoDiVDJR48WooJJeZFVN2_2rStqXtnSs2iGb2QwAS9o"
-#     if mode == "subscribe" and token == VERIFY_TOKEN:
-#         return PlainTextResponse(challenge)  # Respond with the challenge
-#     return {"error": "Verification failed"}
+
 @app.get("/webhook")
 async def verify_webhook(
     hub_mode: str = Query(..., alias="hub.mode"),
