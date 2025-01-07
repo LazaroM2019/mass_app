@@ -108,6 +108,7 @@ async def send_messages(request: MessageRequest):
     message = request.message
     numbers = request.numbers
     image = request.image
+    user_id = request.userId
     send_time_str = request.date
 
     try:
@@ -126,13 +127,13 @@ async def send_messages(request: MessageRequest):
     if utc_datetime > datetime.now(timezone.utc):
         # Format the datetime as needed (optional)
         send_time = utc_datetime.strftime("%Y-%m-%d %H:%M:%S")
-        schedule_whatsapp_message(title_msg, message, numbers, send_time)
+        schedule_whatsapp_message(user_id, title_msg, message, numbers, send_time)
         return {"status": "scheduled", "message": f"Message scheduled for {send_time}"}
     else:
     # Send message to each recipient
         response_list = []
         for number in numbers:
-            result = send_whatsapp_message(number, title_msg, message)
+            result = send_whatsapp_message(user_id, number, title_msg, message)
             logger.info(f"Main: whatsapp result: {result}")
             response_list.append({"to": number, **result})
         return {"status": "sent", "results": response_list}
