@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 # from pymongo import MongoClient
 from utils.token_management import refresh_token_task
 from services.whatsapp import schedule_whatsapp_message, send_whatsapp_message
-# from services.mongo_database import save_to_mongodb
+from services.mongo_database import save_to_mongodb, update_message_status, get_user_id_from_phonenumber, add_chat_message
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from services.chatgpt import ChatGpt, MODELS, PROMPT, SYSTEM_INSTRUCTION
@@ -118,15 +118,11 @@ async def send_messages(request: MessageRequest):
         
         # Assign UTC timezone to the parsed datetime
         utc_datetime = utc_datetime.replace(tzinfo=pytz.UTC)
-        
-        # Convert UTC datetime to Montevideo timezone (UTC-3)
-        # montevideo_tz = pytz.timezone("America/Montevideo")
-        # local_datetime = utc_datetime.astimezone(montevideo_tz)
     except ValueError as e:
         return {"error": f"Invalid date format. Expected in UTC format. Got: {send_time_str}"}
 
     if utc_datetime > datetime.now(timezone.utc):
-        # Format the datetime as needed (optional)
+        # Format the datetime as needed
         send_time = utc_datetime.strftime("%Y-%m-%d %H:%M:%S")
         schedule_whatsapp_message(user_id, title_msg, message, numbers, send_time)
         return {"status": "scheduled", "message": f"Message scheduled for {send_time}"}
@@ -164,26 +160,35 @@ async def webhook(request: Request):
         statuses = data.get("entry", [])
         for status in statuses:
             changes = status.get("changes")[0]["value"]
-            client_name = changes.get("contacts")[0].get("profile").get("name")  # Example: 'read', 'delivered', etc.
-            messages = changes.get("messages")[0]
-            phone_number_client = messages.get("from")
-            whatsapp_message_id = message.get("id")
-            message = messages.get("text").get("body")
+            if "statuses" in list(changes.keys()):
+                pass
+                # update_status = changes["statuses"][0].get("status")
+                # message_waid = changes["statuses"][0].get("id")
+                # phone_number_client = changes["statuses"][0].get("recipient_id")
+                # user_id = get_user_id_from_phonenumber(phone_number_client)
+                # if user_id:
+                #     update_message_status(user_id, phone_number_client, update_status, message_waid)
+                # else:
+                #     logger.error(f"Main: userId {phone_number_client} coudn't get it")
+            elif "messages" in list(changes.keys()):
+                client_name = changes.get("contacts")[0].get("profile").get("name") 
+                messages = changes.get("messages")[0]
+                phone_number_client = changes.get("metadata").get("display_phone_number")
+                whatsapp_message_id = messages.get("id")
+                message = messages.get("text").get("body")
 
-            if len(message) > 0:
-                print(f"Message: {message}")
+                if len(message) > 0:
+                    user_id = get_user_id_from_phonenumber(phone_number_client)
+                    if user_id:
+                        add_chat_message(user_id, phone_number_client, message, datetime.now(timezone.utc), True, 'delivered', whatsapp_message_id, client_name)
+
         
         return {"status": "success"}
     except Exception as e:
         print(f"Error processing webhook: {e}")
         return {"status": "error", "message": str(e)}
     
-# @app.get("/webhook")
-# async def verify_webhook(mode: str, token: str, challenge: str):
-#     VERIFY_TOKEN = "2rHZurQoDiVDJR48WooJJeZFVN2_2rStqXtnSs2iGb2QwAS9o"
-#     if mode == "subscribe" and token == VERIFY_TOKEN:
-#         return PlainTextResponse(challenge)  # Respond with the challenge
-#     return {"error": "Verification failed"}
+
 @app.get("/webhook")
 async def verify_webhook(
     hub_mode: str = Query(..., alias="hub.mode"),
