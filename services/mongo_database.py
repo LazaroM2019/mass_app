@@ -45,46 +45,69 @@ def add_chat_message(user_id, number, text, date, is_client, status, message_id)
     
     mongo_service.upsert_to_collection("chats_history", query, update)
 
-def update_message_status(user_id, number, status):
+@staticmethod
+def update_message_status(user_id, number, status_tag, message_waid):
     mongo_service = MongoDBService()
 
-    query = {"userId": user_id, "number": number}
-        
-    update = {
-        "$set": {"userId": user_id, "number": number},
-        "$push": {"messages": {
-            "status": status
-        }}
+    # Filter to select the document
+    filter_criteria = {"userId": user_id, "number": number}
+
+    # Update operation
+    update_operation = {
+        "$set": {
+            "messages.$[elem].status": status_tag
+        }
     }
-    
-    mongo_service.upsert_to_collection("chats_history", query, update)
-    
 
-def get_whatsapp_credentials(user_id):
+    # Define array filters
+    array_filters = [{"elem.id": message_waid}]
+
+    # Include the array filters in the update
+    update_with_filters = {
+        update_operation,
+        array_filters
+    }
+
+    # Perform the upsert
+    result = mongo_service.upsert_to_collection(
+        collection_name="chats_history",
+        query=filter_criteria,
+        update=update_with_filters
+    )
+    
+    # mongo_service.upsert_to_collection("chats_history", filter_criteria, update_operation)
+    
+@staticmethod
+def get_whatsapp_credentials(user_id, phone_number):
     mongo_service = MongoDBService()
 
-    filter = {"_id": user_id} 
+    filter_id = {"_id": user_id} 
+    filter_phone = {"phone": phone_number}
 
-    user = mongo_service.get_document_by_filter("users", filter)
 
-    if user is not None and user.whatsapp_id is not None:
-        return user.whatsapp_id
+    user_by_id = mongo_service.get_document_by_filter("users", filter_id)
+    user_by_phone = mongo_service.get_document_by_filter("users", filter_phone)
+
+    if user_by_id is not None and user_by_id["wappPhoneNumberId"] is not None:
+        return user_by_id["wappPhoneNumberId"]
+    elif user_by_phone is not None and user_by_phone["wappPhoneNumberId"] is not None:
+        return user_by_phone["wappPhoneNumberId"]
     
     WHATSAPP_ACCOUNT_SID = os.getenv('WHATSAPP_ACCOUNT_SID')
     return WHATSAPP_ACCOUNT_SID
 
-def get_whatsapp_credentials_from_phonenumber(phone_number):
+@staticmethod
+def get_user_id_from_phonenumber(phone_number):
     mongo_service = MongoDBService()
 
     filter = {"phone": phone_number} 
 
     user = mongo_service.get_document_by_filter("users", filter)
 
-    if user is not None and user.whatsapp_id is not None:
-        return user.whatsapp_id
+    if user is not None and user["_id"] is not None:
+        return str(user["_id"])
     
-    WHATSAPP_ACCOUNT_SID = os.getenv('WHATSAPP_ACCOUNT_SID')
-    return WHATSAPP_ACCOUNT_SID
+    return None
 
 def save_to_mongodb(database, collection_name, data):
     """

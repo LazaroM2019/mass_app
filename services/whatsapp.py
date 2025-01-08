@@ -54,7 +54,7 @@ def send_whatsapp_message(user_id, number, title_front, text_front):
         ]
 
     try:
-        account_id = get_whatsapp_credentials(user_id)
+        account_id = get_whatsapp_credentials(user_id, number)
         URL_WHATSAPP = f"https://graph.facebook.com/v21.0/{account_id}/messages"
         response = requests.post(URL_WHATSAPP, headers=HEADERS, json=payload)
         if response.status_code == 200:

@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 # from pymongo import MongoClient
 from utils.token_management import refresh_token_task
 from services.whatsapp import schedule_whatsapp_message, send_whatsapp_message
-from services.mongo_database import save_to_mongodb, update_message_status
+from services.mongo_database import save_to_mongodb, update_message_status, get_user_id_from_phonenumber, add_chat_message
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from services.chatgpt import ChatGpt, MODELS, PROMPT, SYSTEM_INSTRUCTION
@@ -161,17 +161,27 @@ async def webhook(request: Request):
         for status in statuses:
             changes = status.get("changes")[0]["value"]
             if "statuses" in list(changes.keys()):
-                update_status = changes["statuses"][0].get("status")
-                update_status = changes["statuses"][0].get("recipient_id")
-                update_message_status()
-            client_name = changes.get("contacts")[0].get("profile").get("name")  # Example: 'read', 'delivered', etc.
-            messages = changes.get("messages")[0]
-            phone_number_client = messages.get("from")
-            whatsapp_message_id = message.get("id")
-            message = messages.get("text").get("body")
+                pass
+                # update_status = changes["statuses"][0].get("status")
+                # message_waid = changes["statuses"][0].get("id")
+                # phone_number_client = changes["statuses"][0].get("recipient_id")
+                # user_id = get_user_id_from_phonenumber(phone_number_client)
+                # if user_id:
+                #     update_message_status(user_id, phone_number_client, update_status, message_waid)
+                # else:
+                #     logger.error(f"Main: userId {phone_number_client} coudn't get it")
+            elif "messages" in list(changes.keys()):
+                client_name = changes.get("contacts")[0].get("profile").get("name") 
+                messages = changes.get("messages")[0]
+                phone_number_client = messages.get("from")
+                whatsapp_message_id = messages.get("id")
+                message = messages.get("text").get("body")
 
-            if len(message) > 0:
-                logger.info(f"Message: {message}")
+                if len(message) > 0:
+                    user_id = get_user_id_from_phonenumber(phone_number_client)
+                    if user_id:
+                        add_chat_message(user_id, phone_number_client, message, datetime.now(timezone.utc), False, 'delivered', whatsapp_message_id)
+
         
         return {"status": "success"}
     except Exception as e:
