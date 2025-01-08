@@ -61,7 +61,8 @@ def send_whatsapp_message(user_id, number, title_front, text_front):
             json_response = response.json()
             status_msg = json_response['messages'][0].get("message_status")
             message_id = json_response['messages'][0].get("id")
-            add_chat_message(user_id, number, message, datetime.now(timezone.utc), False, status_msg, message_id)
+            if title == "chat_only":
+                add_chat_message(user_id, number, message, datetime.now(timezone.utc), False, status_msg, message_id)
             return {"status": "success", "message_sid": response.json()}
         else:
             return {"status": "failed", "error": response.text}

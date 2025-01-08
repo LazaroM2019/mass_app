@@ -173,14 +173,14 @@ async def webhook(request: Request):
             elif "messages" in list(changes.keys()):
                 client_name = changes.get("contacts")[0].get("profile").get("name") 
                 messages = changes.get("messages")[0]
-                phone_number_client = messages.get("from")
+                phone_number_client = changes.get("metadata").get("display_phone_number")
                 whatsapp_message_id = messages.get("id")
                 message = messages.get("text").get("body")
 
                 if len(message) > 0:
                     user_id = get_user_id_from_phonenumber(phone_number_client)
                     if user_id:
-                        add_chat_message(user_id, phone_number_client, message, datetime.now(timezone.utc), False, 'delivered', whatsapp_message_id)
+                        add_chat_message(user_id, phone_number_client, message, datetime.now(timezone.utc), True, 'delivered', whatsapp_message_id, client_name)
 
         
         return {"status": "success"}

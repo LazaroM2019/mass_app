@@ -27,13 +27,13 @@ class MongoDBService:
         self.client.close()
 
 
-def add_chat_message(user_id, number, text, date, is_client, status, message_id):
+def add_chat_message(user_id, number, text, date, is_client, status, message_id, client_name=""):
     mongo_service = MongoDBService()
 
-    query = {"userId": user_id, "number": number}
+    query = {"userId": user_id, "number": number, "client_name": client_name}
         
     update = {
-        "$set": {"userId": user_id, "number": number},
+        "$set": {"userId": user_id, "number": number, "client_name": client_name},
         "$push": {"messages": {
             "text": text,
             "date": date,
