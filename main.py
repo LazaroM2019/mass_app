@@ -153,8 +153,10 @@ async def chat_suggestion(request: AiSuggestion):
 @app.post("/webhook")
 async def webhook(request: Request):
     try:
+        logger.info("Webhook request")
         # Parse the incoming JSON
         data = await request.json()
+        logger.info(f"Main: whatsapp result: {data}")
 
         # Handle statuses if provided in the payload
         statuses = data.get("entry", [])
@@ -171,14 +173,17 @@ async def webhook(request: Request):
                 # else:
                 #     logger.error(f"Main: userId {phone_number_client} coudn't get it")
             elif "messages" in list(changes.keys()):
+                logger.info("new message")
                 client_name = changes.get("contacts")[0].get("profile").get("name") 
                 messages = changes.get("messages")[0]
                 phone_number_client = changes.get("metadata").get("display_phone_number")
                 whatsapp_message_id = messages.get("id")
                 message = messages.get("text").get("body")
+                logger.info(f"message: {message} to: {phone_number_client}")
 
                 if len(message) > 0:
                     user_id = get_user_id_from_phonenumber(phone_number_client)
+                    logger.info(f"user: {user_id}")
                     if user_id:
                         add_chat_message(user_id, phone_number_client, message, datetime.now(timezone.utc), True, 'delivered', whatsapp_message_id, client_name)
 
