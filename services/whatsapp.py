@@ -44,7 +44,7 @@ def send_whatsapp_message(user_id, number, title_front, text_front):
     }
 
     if title == "chat_only":
-        add_chat_message(user_id, number, message, datetime.now(timezone.utc), False)
+        # add_chat_message(user_id, number, message, datetime.now(timezone.utc), False)
         payload["template"]["name"] = "text_dynamic_message"
         payload["template"]["components"] = [
             {
@@ -58,6 +58,10 @@ def send_whatsapp_message(user_id, number, title_front, text_front):
         URL_WHATSAPP = f"https://graph.facebook.com/v21.0/{account_id}/messages"
         response = requests.post(URL_WHATSAPP, headers=HEADERS, json=payload)
         if response.status_code == 200:
+            json_response = response.json()
+            status_msg = json_response['messages'][0].get("message_status")
+            message_id = json_response['messages'][0].get("id")
+            add_chat_message(user_id, number, message, datetime.now(timezone.utc), False, status_msg, message_id)
             return {"status": "success", "message_sid": response.json()}
         else:
             return {"status": "failed", "error": response.text}

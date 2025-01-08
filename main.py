@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 # from pymongo import MongoClient
 from utils.token_management import refresh_token_task
 from services.whatsapp import schedule_whatsapp_message, send_whatsapp_message
-# from services.mongo_database import save_to_mongodb
+from services.mongo_database import save_to_mongodb, update_message_status
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from services.chatgpt import ChatGpt, MODELS, PROMPT, SYSTEM_INSTRUCTION
@@ -160,6 +160,10 @@ async def webhook(request: Request):
         statuses = data.get("entry", [])
         for status in statuses:
             changes = status.get("changes")[0]["value"]
+            if "statuses" in list(changes.keys()):
+                update_status = changes["statuses"][0].get("status")
+                update_status = changes["statuses"][0].get("recipient_id")
+                update_message_status()
             client_name = changes.get("contacts")[0].get("profile").get("name")  # Example: 'read', 'delivered', etc.
             messages = changes.get("messages")[0]
             phone_number_client = messages.get("from")

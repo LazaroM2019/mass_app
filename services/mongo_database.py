@@ -27,7 +27,7 @@ class MongoDBService:
         self.client.close()
 
 
-def add_chat_message(user_id, number, text, date, is_client):
+def add_chat_message(user_id, number, text, date, is_client, status, message_id):
     mongo_service = MongoDBService()
 
     query = {"userId": user_id, "number": number}
@@ -37,7 +37,23 @@ def add_chat_message(user_id, number, text, date, is_client):
         "$push": {"messages": {
             "text": text,
             "date": date,
-            "is_client": is_client
+            "is_client": is_client,
+            "status": status,
+            "id": message_id
+        }}
+    }
+    
+    mongo_service.upsert_to_collection("chats_history", query, update)
+
+def update_message_status(user_id, number, status):
+    mongo_service = MongoDBService()
+
+    query = {"userId": user_id, "number": number}
+        
+    update = {
+        "$set": {"userId": user_id, "number": number},
+        "$push": {"messages": {
+            "status": status
         }}
     }
     
@@ -48,6 +64,19 @@ def get_whatsapp_credentials(user_id):
     mongo_service = MongoDBService()
 
     filter = {"_id": user_id} 
+
+    user = mongo_service.get_document_by_filter("users", filter)
+
+    if user is not None and user.whatsapp_id is not None:
+        return user.whatsapp_id
+    
+    WHATSAPP_ACCOUNT_SID = os.getenv('WHATSAPP_ACCOUNT_SID')
+    return WHATSAPP_ACCOUNT_SID
+
+def get_whatsapp_credentials_from_phonenumber(phone_number):
+    mongo_service = MongoDBService()
+
+    filter = {"phone": phone_number} 
 
     user = mongo_service.get_document_by_filter("users", filter)
 
