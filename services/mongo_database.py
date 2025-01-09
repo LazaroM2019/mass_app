@@ -31,16 +31,21 @@ def add_chat_message(user_id, number, text, date, is_client, status, message_id,
     mongo_service = MongoDBService()
 
     query = {"userId": user_id, "number": number}
+
+    obj_client_name = {"userId": user_id, "number": number}
+    if client_name is not None and client_name != "":
+        obj_client_name["client_name"] = client_name
         
     update = {
-        "$set": {"userId": user_id, "number": number, "client_name": client_name},
+        "$set": obj_client_name,
         "$push": {"messages": {
             "text": text,
             "date": date,
             "is_client": is_client,
             "status": status,
             "id": message_id
-        }}
+            }
+        }
     }
     
     mongo_service.upsert_to_collection("chats_history", query, update)
