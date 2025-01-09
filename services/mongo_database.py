@@ -1,4 +1,5 @@
 from pymongo import MongoClient
+from bson import ObjectId
 import os
 
 class MongoDBService:
@@ -86,7 +87,8 @@ def update_message_status(user_id, number, status_tag, message_waid):
 def get_whatsapp_credentials(user_id, phone_number=None):
     mongo_service = MongoDBService()
 
-    filter_id = {"_id": user_id} 
+    obj_user_id = ObjectId(user_id)
+    filter_id = {"_id": obj_user_id} 
     user_by_id = mongo_service.get_document_by_filter("users", filter_id)
 
     if phone_number:
