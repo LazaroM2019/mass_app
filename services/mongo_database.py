@@ -83,15 +83,15 @@ def update_message_status(user_id, number, status_tag, message_waid):
     # mongo_service.upsert_to_collection("chats_history", filter_criteria, update_operation)
     
 @staticmethod
-def get_whatsapp_credentials(user_id, phone_number):
+def get_whatsapp_credentials(user_id, phone_number=None):
     mongo_service = MongoDBService()
 
     filter_id = {"_id": user_id} 
-    filter_phone = {"phone": phone_number}
-
-
     user_by_id = mongo_service.get_document_by_filter("users", filter_id)
-    user_by_phone = mongo_service.get_document_by_filter("users", filter_phone)
+
+    if phone_number:
+        filter_phone = {"phone": phone_number}
+        user_by_phone = mongo_service.get_document_by_filter("users", filter_phone)
 
     if user_by_id is not None and user_by_id["wappPhoneNumberId"] is not None:
         return user_by_id["wappPhoneNumberId"]
