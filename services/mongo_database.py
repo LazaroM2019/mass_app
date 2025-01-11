@@ -43,6 +43,7 @@ def add_chat_message(user_id, number, text, date, is_client, status, message_id,
             "text": text,
             "date": date,
             "is_client": is_client,
+            "new": is_client,
             "status": status,
             "id": message_id
             }
