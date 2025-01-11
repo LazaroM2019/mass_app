@@ -128,12 +128,8 @@ async def send_messages(request: MessageRequest):
         return {"status": "scheduled", "message": f"Message scheduled for {send_time}"}
     else:
     # Send message to each recipient
-        response_list = []
-        for number in numbers:
-            result = send_whatsapp_message(user_id, number, title_msg, message)
-            logger.info(f"Main: whatsapp result: {result}")
-            response_list.append({"to": number, **result})
-        return {"status": "sent", "results": response_list}
+        schedule_whatsapp_message(user_id, title_msg, message, numbers, datetime.now(timezone.utc))
+        return {"status": "sent", "message": f"Message sent"}
 
 # Route to send a WhatsApp message to improved with ChatGpt
 @app.post("/ai/suggestion")
