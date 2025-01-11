@@ -56,8 +56,10 @@ def send_whatsapp_message(user_id, number, title_front, text_front):
     try:
         account_id = get_whatsapp_credentials(user_id)
         URL_WHATSAPP = f"https://graph.facebook.com/v21.0/{account_id}/messages"
+        logger.info(f"Sending message to: {number}")
         response = requests.post(URL_WHATSAPP, headers=HEADERS, json=payload)
         if response.status_code == 200:
+            logger.info("Message sent successfully")
             json_response = response.json()
             status_msg = json_response['messages'][0].get("message_status")
             message_id = json_response['messages'][0].get("id")
@@ -65,8 +67,10 @@ def send_whatsapp_message(user_id, number, title_front, text_front):
                 add_chat_message(user_id, number, message, datetime.now(timezone.utc), False, status_msg, message_id)
             return {"status": "success", "message_sid": response.json()}
         else:
+            logger.info(f"Message faild: {response.text}")
             return {"status": "failed", "error": response.text}
     except Exception as e:
+        logger.error(str(e))
         return {"status": "failed", "error": str(e)}
 
 
