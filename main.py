@@ -4,17 +4,19 @@ from pydantic import BaseModel
 import logging
 import os
 import time
+import asyncio
 import requests
 import traceback
 from fastapi.middleware.cors import CORSMiddleware
 # from pymongo import MongoClient
 from utils.token_management import refresh_token_task
+from utils.general import batch_list
 from services.whatsapp import schedule_whatsapp_message, send_whatsapp_message
 from services.mongo_database import save_to_mongodb, update_message_status, get_user_id_from_phonenumber, add_chat_message
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from services.chatgpt import ChatGpt, MODELS, PROMPT, SYSTEM_INSTRUCTION
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import pytz
 from dotenv import load_dotenv
 
@@ -122,6 +124,8 @@ async def send_messages(request: MessageRequest):
         utc_datetime = utc_datetime.replace(tzinfo=pytz.UTC)
     except ValueError as e:
         return {"error": f"Invalid date format. Expected in UTC format. Got: {send_time_str}"}
+    
+    batch_size = len(numbers)//5
 
     if utc_datetime > datetime.now(timezone.utc):
         # Format the datetime as needed
@@ -130,7 +134,10 @@ async def send_messages(request: MessageRequest):
         return {"status": "scheduled", "message": f"Message scheduled for {send_time}"}
     else:
     # Send message to each recipient
-        schedule_whatsapp_message(user_id, title_msg, message, numbers, datetime.now(timezone.utc))
+        time_now = datetime.now(timezone.utc)
+        for batch in batch_list(numbers, batch_size):
+            schedule_whatsapp_message(user_id, title_msg, message, batch, time_now)
+            time_now += timedelta(seconds=2)
         return {"status": "sent", "message": f"Message sent"}
 
 # Route to send a WhatsApp message to improved with ChatGpt
