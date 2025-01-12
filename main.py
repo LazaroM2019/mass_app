@@ -97,6 +97,7 @@ class MessageRequest(BaseModel):
     userId: str
     image: str
     date: str
+    messageId: str
 
 class AiSuggestion(BaseModel):
     title: str
@@ -111,6 +112,7 @@ async def send_messages(request: MessageRequest):
     image = request.image
     user_id = request.userId
     send_time_str = request.date
+    message_id = request.messageId
 
     try:
         # Parse the input UTC datetime string
