@@ -24,6 +24,11 @@ class MongoDBService:
         
         return result.upserted_id if result.upserted_id else result.modified_count
     
+    def update_one(self, collection_name: str, query, update):
+        collection = self.database[collection_name]  
+        result = collection.update_one(query, update)
+        return result.modified_count
+    
     def close_connection(self):
         self.client.close()
 
@@ -51,6 +56,20 @@ def add_chat_message(user_id, number, text, date, is_client, status, message_id,
     }
     
     mongo_service.upsert_to_collection("chats_history", query, update)
+
+def update_message_whats_app_status(message_id, number, status):
+    mongo_service = MongoDBService()
+
+    mongo_service.update_one(
+        "messages", 
+        { 
+            "_id": ObjectId(message_id), 
+            "numbers.number": number 
+        },
+        { 
+            "$set": { "numbers.$.status": status }
+        })
+
 
 @staticmethod
 def update_message_status(user_id, number, status_tag, message_waid):
