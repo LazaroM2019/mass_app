@@ -124,8 +124,6 @@ async def send_messages(request: MessageRequest):
         utc_datetime = utc_datetime.replace(tzinfo=pytz.UTC)
     except ValueError as e:
         return {"error": f"Invalid date format. Expected in UTC format. Got: {send_time_str}"}
-    
-    batch_size = len(numbers)//5
 
     if utc_datetime > datetime.now(timezone.utc):
         # Format the datetime as needed
@@ -135,9 +133,11 @@ async def send_messages(request: MessageRequest):
     else:
     # Send message to each recipient
         time_now = datetime.now(timezone.utc)
+        batch_size = len(numbers)//5
         for batch in batch_list(numbers, batch_size):
+            logger.info(f"Manin BATCH: {batch}")
             schedule_whatsapp_message(user_id, title_msg, message, batch, time_now)
-            time_now += timedelta(seconds=2)
+            time_now += timedelta(seconds=4)
         return {"status": "sent", "message": f"Message sent"}
 
 # Route to send a WhatsApp message to improved with ChatGpt

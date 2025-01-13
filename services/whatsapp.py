@@ -1,4 +1,5 @@
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.executors.pool import ThreadPoolExecutor
 import requests
 import os
 from utils.logger import logger
@@ -6,7 +7,10 @@ from datetime import datetime, timezone
 from services.mongo_database import add_chat_message, get_whatsapp_credentials
 
 # Initialize the scheduler (ensure it's started only once)
-scheduler = BackgroundScheduler()
+executors = {
+    'default': ThreadPoolExecutor(2)  # Increase from default (10) to 20
+}
+scheduler = BackgroundScheduler(executors=executors)
 scheduler.start()
 
 # WHATSAPP credentials saved
@@ -59,8 +63,8 @@ def send_whatsapp_message(user_id, number, title_front, text_front):
         logger.info(f"Sending message to: {number}")
         response = requests.post(URL_WHATSAPP, headers=HEADERS, json=payload)
         if response.status_code == 200:
-            logger.info("Message sent successfully")
             json_response = response.json()
+            logger.info(f"WHATSAPP: Message sent successfully {json_response}")
             status_msg = json_response['messages'][0].get("message_status")
             message_id = json_response['messages'][0].get("id")
             if title == "chat_only":
@@ -76,12 +80,14 @@ def send_whatsapp_message(user_id, number, title_front, text_front):
 
 # Function to schedule a WhatsApp message
 def schedule_whatsapp_message(user_id, title, message, numbers, send_time):
-    formatted_message = f"*{title}*\n\n{message}"
     for number in numbers:
         scheduler.add_job(
             send_whatsapp_message,
             'date',
             run_date=send_time,
-            args=[user_id, number, title, message]
+            args=[user_id, number, title, message],
+            misfire_grace_time=30 
         )
+
+
 
