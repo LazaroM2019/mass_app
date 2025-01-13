@@ -128,15 +128,15 @@ async def send_messages(request: MessageRequest):
     if utc_datetime > datetime.now(timezone.utc):
         # Format the datetime as needed
         send_time = utc_datetime.strftime("%Y-%m-%d %H:%M:%S")
-        schedule_whatsapp_message(user_id, title_msg, message, numbers, send_time)
+        schedule_whatsapp_message(message_id, user_id, title_msg, message, numbers, send_time)
         return {"status": "scheduled", "message": f"Message scheduled for {send_time}"}
     else:
     # Send message to each recipient
-        batch_size = len(numbers)//5
+        batch_size = len(numbers)//5 or 1
         for batch in batch_list(numbers, batch_size):
             time_now = datetime.now(timezone.utc)
             logger.info(f"Manin BATCH: {batch}")
-            schedule_whatsapp_message(user_id, title_msg, message, batch, time_now)
+            schedule_whatsapp_message(message_id, user_id, title_msg, message, batch, time_now)
             asyncio.sleep(4)
         return {"status": "sent", "message": f"Message sent"}
 
