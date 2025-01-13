@@ -132,12 +132,12 @@ async def send_messages(request: MessageRequest):
         return {"status": "scheduled", "message": f"Message scheduled for {send_time}"}
     else:
     # Send message to each recipient
-        time_now = datetime.now(timezone.utc)
         batch_size = len(numbers)//5
         for batch in batch_list(numbers, batch_size):
+            time_now = datetime.now(timezone.utc)
             logger.info(f"Manin BATCH: {batch}")
             schedule_whatsapp_message(user_id, title_msg, message, batch, time_now)
-            time_now += timedelta(seconds=4)
+            asyncio.sleep(4)
         return {"status": "sent", "message": f"Message sent"}
 
 # Route to send a WhatsApp message to improved with ChatGpt
