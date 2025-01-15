@@ -103,7 +103,7 @@ def get_company_id_from_phonenumber(phone_number):
 def get_company_from_user(user_id):
     mongo_service = MongoDBService()
 
-    filter = {"users": { "$elemMatch": { "userId": user_id } } }
+    filter = {"users":  ObjectId(user_id) }
 
     company = mongo_service.get_document_by_filter("companies", filter)
 

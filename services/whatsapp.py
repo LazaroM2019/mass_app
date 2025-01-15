@@ -57,7 +57,9 @@ def send_whatsapp_message(message_id, user_id, number, title_front, text_front):
         ]
 
     try:
+        logger.info(f"user: {user_id}")
         company_id = get_company_from_user(user_id)
+        logger.info(f"company: {company_id}")
         account_id = get_whatsapp_credentials(company_id)
         URL_WHATSAPP = f"https://graph.facebook.com/v21.0/{account_id}/messages"
         logger.info(f"Sending message to: {number}")
