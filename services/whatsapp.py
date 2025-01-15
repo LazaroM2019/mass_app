@@ -45,7 +45,7 @@ def send_whatsapp_message(message_id, user_id, number, title_front, text_front, 
         key_name = f"{str(uuid.uuid4())}.jpeg"
         path_file = save_base64_to_jpeg(image_base64, key_name)
         number_media_id = upload_media(account_id,path_file, "image")
-        payload["template"] = load_template(name="general",title=title, message=message, media_id=number_media_id)
+        payload["template"] = load_template(name="image",title=title, message=message, media_id=number_media_id)
 
     try:
         URL_WHATSAPP = f"https://graph.facebook.com/v21.0/{account_id}/messages"
