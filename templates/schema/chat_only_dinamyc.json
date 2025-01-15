@@ -1,0 +1,12 @@
+{
+    "name": "text_dynamic_message",
+    "language": {
+        "code": "en"
+    },
+    "components": [
+        {
+            "type": "body",
+            "parameters": [{"type": "text", "text": ""}]
+        }
+    ]
+}
