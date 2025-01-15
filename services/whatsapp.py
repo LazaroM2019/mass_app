@@ -4,7 +4,7 @@ import requests
 import os
 from utils.logger import logger
 from datetime import datetime, timezone
-from services.mongo_database import add_chat_message, get_whatsapp_credentials, update_message_status, update_message_whats_app_status
+from services.mongo_database import add_chat_message, get_company_from_user, get_whatsapp_credentials, update_message_whats_app_status
 
 # Initialize the scheduler (ensure it's started only once)
 executors = {
@@ -47,8 +47,7 @@ def send_whatsapp_message(message_id, user_id, number, title_front, text_front):
         }
     }
 
-    if title == "chat_only":
-        # add_chat_message(user_id, number, message, datetime.now(timezone.utc), False)
+    if title == "chat_only":    
         payload["template"]["name"] = "text_dynamic_message"
         payload["template"]["components"] = [
             {
@@ -58,7 +57,8 @@ def send_whatsapp_message(message_id, user_id, number, title_front, text_front):
         ]
 
     try:
-        account_id = get_whatsapp_credentials(user_id)
+        company_id = get_company_from_user(user_id)
+        account_id = get_whatsapp_credentials(company_id)
         URL_WHATSAPP = f"https://graph.facebook.com/v21.0/{account_id}/messages"
         logger.info(f"Sending message to: {number}")
         response = requests.post(URL_WHATSAPP, headers=HEADERS, json=payload)
@@ -69,7 +69,7 @@ def send_whatsapp_message(message_id, user_id, number, title_front, text_front):
             status_msg = json_response['messages'][0].get("message_status")
             message_id_whatsApp = json_response['messages'][0].get("id")
             if title == "chat_only":
-                add_chat_message(user_id, number, message, datetime.now(timezone.utc), False, status_msg, message_id_whatsApp)
+                add_chat_message(company_id, number, message, datetime.now(timezone.utc), False, status_msg, message_id_whatsApp)
             return {"status": "success", "message_sid": response.json()}
         else:
             logger.info(f"Message faild: {response.text}")

@@ -32,13 +32,13 @@ class MongoDBService:
     def close_connection(self):
         self.client.close()
 
-
-def add_chat_message(user_id, number, text, date, is_client, status, message_id, client_name=""):
+@staticmethod
+def add_chat_message(company_id, number, text, date, is_client, status, message_id, client_name=""):
     mongo_service = MongoDBService()
 
-    query = {"userId": user_id, "number": number}
+    query = {"companyId": company_id, "number": number}
 
-    obj_client_name = {"userId": user_id, "number": number}
+    obj_client_name = {"companyId": company_id, "number": number}
     if client_name is not None and client_name != "":
         obj_client_name["client_name"] = client_name
         
@@ -57,6 +57,7 @@ def add_chat_message(user_id, number, text, date, is_client, status, message_id,
     
     mongo_service.upsert_to_collection("chats_history", query, update)
 
+@staticmethod
 def update_message_whats_app_status(message_id, number, status):
     mongo_service = MongoDBService()
 
@@ -70,80 +71,43 @@ def update_message_whats_app_status(message_id, number, status):
             "$set": { "numbers.$.status": status }
         })
 
-
-@staticmethod
-def update_message_status(user_id, number, status_tag, message_waid):
-    mongo_service = MongoDBService()
-
-    # Filter to select the document
-    filter_criteria = {"userId": user_id, "number": number}
-
-    # Update operation
-    update_operation = {
-        "$set": {
-            "messages.$[elem].status": status_tag
-        }
-    }
-
-    # Define array filters
-    array_filters = [{"elem.id": message_waid}]
-
-    # Include the array filters in the update
-    update_with_filters = {
-        update_operation,
-        array_filters
-    }
-
-    # Perform the upsert
-    result = mongo_service.upsert_to_collection(
-        collection_name="chats_history",
-        query=filter_criteria,
-        update=update_with_filters
-    )
-    
-    # mongo_service.upsert_to_collection("chats_history", filter_criteria, update_operation)
     
 @staticmethod
-def get_whatsapp_credentials(user_id):
+def get_whatsapp_credentials(company_id):
     mongo_service = MongoDBService()
 
-    obj_user_id = ObjectId(user_id)
-    filter_id = {"_id": obj_user_id} 
-    user_by_id = mongo_service.get_document_by_filter("users", filter_id)
+    obj_company_id = ObjectId(company_id)
+    filter_id = {"_id": obj_company_id} 
+    company_by_id = mongo_service.get_document_by_filter("companies", filter_id)
 
-    if user_by_id is not None and user_by_id["wappPhoneNumberId"] is not None:
-        return user_by_id["wappPhoneNumberId"]    
+    if company_by_id is not None and company_by_id["whatsappAccountId"] is not None:
+        return company_by_id["whatsappAccountId"]    
     
     WHATSAPP_ACCOUNT_SID = os.getenv('WHATSAPP_ACCOUNT_SID')
     return WHATSAPP_ACCOUNT_SID
 
 @staticmethod
-def get_user_id_from_phonenumber(phone_number):
+def get_company_id_from_phonenumber(phone_number):
     mongo_service = MongoDBService()
 
     filter = {"phone": phone_number} 
 
-    user = mongo_service.get_document_by_filter("users", filter)
+    company = mongo_service.get_document_by_filter("companies", filter)
 
-    if user is not None and user["_id"] is not None:
-        return str(user["_id"])
+    if company is not None and company["_id"] is not None:
+        return str(company["_id"])
     
     return None
 
-def save_to_mongodb(database, collection_name, data):
-    """
-    Save data to MongoDB.
+@staticmethod
+def get_company_from_user(user_id):
+    mongo_service = MongoDBService()
 
-    :param collection: The MongoDB collection object
-    :param data: The data to save (as a dictionary)
-    :return: The ID of the inserted document
-    """
-    try:
-        # Insert the data
-        collection = database[collection_name]
-        result = collection.insert_one(data)
-        print(f"Data inserted with ID: {result.inserted_id}")
-        return result.inserted_id
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return None
+    filter = {"users": { "$elemMatch": { "userId": user_id } } }
+
+    company = mongo_service.get_document_by_filter("companies", filter)
+
+    if company is not None and company["_id"] is not None:
+        return str(company["_id"])
+    
+    return None
