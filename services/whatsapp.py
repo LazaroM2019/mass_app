@@ -4,7 +4,7 @@ import requests
 import os
 from utils.logger import logger
 from datetime import datetime, timezone
-from services.mongo_database import add_chat_message, get_company_from_user, get_whatsapp_credentials, update_message_status, update_message_whats_app_status
+from services.mongo_database import add_chat_message, get_company_from_user, get_whatsapp_credentials, update_message_whats_app_status
 from templates.template_management import load_template
 from utils.image_procesor import save_base64_to_jpeg
 import uuid
