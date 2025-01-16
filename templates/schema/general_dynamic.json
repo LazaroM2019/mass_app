@@ -1,0 +1,16 @@
+{
+    "name": "general_dynamic_message",
+    "language": {
+        "code": "en"
+    },
+    "components": [
+        {
+            "type": "header",
+            "parameters": [{"type": "text", "text": ""}]
+        },
+        {
+            "type": "body",
+            "parameters": [{"type": "text", "text": ""}]
+        }
+    ]
+}
