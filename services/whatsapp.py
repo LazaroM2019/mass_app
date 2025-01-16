@@ -8,6 +8,7 @@ from services.mongo_database import add_chat_message, get_company_from_user, get
 from templates.template_management import load_template
 from utils.image_procesor import save_base64_to_jpeg
 import uuid
+import re
 
 # Initialize the scheduler (ensure it's started only once)
 executors = {
@@ -26,8 +27,10 @@ HEADERS = {
 
 # Function to send a WhatsApp message
 def send_whatsapp_message(message_id, user_id, number, title_front, text_front, image_base64):
-    title = title_front.replace("\n", "")
-    message = text_front.replace("\n", "").replace("\r", "")
+    title = title_front + "\r"
+    logger.info(repr(text_front))    
+    text_front = re.sub(r'(\r\n){4,}', '\r\n' * 3, text_front)
+    message = text_front.replace("\r\n", "\r")
     payload = {
         "messaging_product": "whatsapp",
         "to": number,
