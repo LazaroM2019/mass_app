@@ -8,6 +8,7 @@ from services.mongo_database import add_chat_message, get_company_from_user, get
 from templates.template_management import load_template
 from utils.image_procesor import save_base64_to_jpeg
 import uuid
+import re
 
 # Initialize the scheduler (ensure it's started only once)
 executors = {
@@ -26,8 +27,10 @@ HEADERS = {
 
 # Function to send a WhatsApp message
 def send_whatsapp_message(message_id, user_id, number, title_front, text_front, image_base64):
-    title = title_front.replace("\n", "")
-    message = text_front.replace("\n", "").replace("\r", "")
+    title = title_front + "\r"
+    logger.info(repr(text_front))    
+    text_front = re.sub(r'(\r\n){4,}', '\r\n' * 3, text_front)
+    message = text_front.replace("\r\n", "\r")
     payload = {
         "messaging_product": "whatsapp",
         "to": number,
@@ -39,16 +42,28 @@ def send_whatsapp_message(message_id, user_id, number, title_front, text_front, 
     logger.info(f"Company: {company_id}")
     account_id = get_whatsapp_credentials(company_id)
 
-    if title == "chat_only":
-        payload["template"] = load_template(name="chat_only", message=message)
-    if title != "chat_only":
-        payload["template"] = load_template(name="general",title=title, message=message)
-    if title != "chat_only" and image_base64 != "":
+    
+    if image_base64 == "": # and doc_base64 == ""
+        if title != "chat_only":
+            payload["template"] = load_template(name="general",title=title, message=message)
+        
+        if title == "chat_only":
+            payload["template"] = load_template(name="chat_only", message=message)
+
+    if image_base64 != "":
         key_name = f"{str(uuid.uuid4())}.jpeg"
         path_file = save_base64_to_jpeg(image_base64, key_name)
         number_media_id = upload_media(account_id,path_file, "image")
-        payload["template"] = load_template(name="image",title=title, message=message, media_id=number_media_id)
 
+        if title != "chat_only":
+            payload["template"] = load_template(name="general_image",title=title, message=message, media_id=number_media_id)
+
+        if title == "chat_only":
+            payload["template"] = load_template(name="image",title=title, message=message, media_id=number_media_id)
+
+    
+    # if doc_base64 != "": same logic
+    
     try:
         URL_WHATSAPP = f"https://graph.facebook.com/v21.0/{account_id}/messages"
         logger.info(f"Sending message to: {number}")
