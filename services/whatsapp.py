@@ -1,3 +1,4 @@
+import base64
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.executors.pool import ThreadPoolExecutor
 import requests
@@ -117,3 +118,90 @@ def upload_media(phone_number_id: str, file_name: str, type_of_file: str):
         logger.error(response.text)
     return media_id
 
+
+def initiate_upload(file_length, file_name, access_token):
+    url = f'https://graph.facebook.com/v21.0/app/uploads/?file_length={file_length}&file_type=image/jpeg&file_name={file_name}'
+    
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+    }
+
+    response = requests.post(url, headers=headers)
+
+    if response.status_code != 200:
+        raise Exception('Failed to initiate upload')
+    
+    data = response.json()
+    logger.info(data)
+    return data['id'] 
+
+
+def upload_image_chunk(upload_id, file, access_token):
+
+    headers = {
+        'Authorization': f'OAuth {access_token}',
+        'Content-Type': 'image/jpeg',
+        'file_offset': '0'
+    }
+
+    response = requests.post(
+            f'https://graph.facebook.com/v21.0/{upload_id}',
+            headers=headers,
+            data=file
+        )
+
+    data = response.json()
+    logger.info(data)
+
+    return data["h"]  # Return the file handle to be used in the next step
+
+
+def update_business_profile(phone_number_id, file_handle, access_token):
+    url = f'https://graph.facebook.com/v21.0/{phone_number_id}/whatsapp_business_profile'
+    
+    headers = {
+        'Authorization': f'OAuth {access_token}',
+        'Content-Type': 'application/json',
+    }
+
+    data = {
+        "messaging_product": "whatsapp",
+        "profile_picture_handle": file_handle,
+    }
+
+    response = requests.post(url, headers=headers, json=data)
+
+    result = response.json()
+
+    logger.info(result)
+    return response
+
+def update_business_profile_image(base64_data, file_name, access_token, phone_number_id):
+    # Step 1: Decode base64 to binary data
+    byte_data = base64.b64decode(base64_data)
+    
+    # Step 2: Initiate the upload
+    file_length = len(byte_data)
+    upload_id = initiate_upload(file_length, file_name, access_token)
+
+    # Step 3: Upload the image in chunks
+    file_handle = upload_image_chunk(upload_id, byte_data, access_token)
+
+    # Step 4: Update the business profile with the new image
+    return update_business_profile(phone_number_id, file_handle, access_token)
+
+
+def update_business_image(company_id, image_base64):
+   
+    account_id = get_whatsapp_credentials(company_id)
+    logger.info(f"updating image for: {account_id} - {image_base64}")
+    file_name = 'myprofile.jpg'
+
+    response = update_business_profile_image(image_base64, file_name, WHATSAPP_AUTH_TOKEN, account_id)
+    
+    if response.status_code == 200:
+        logger.info(f"Company photo updated: {company_id}")            
+        return {"status": "success", "message_sid": response.json()}
+    else:
+        logger.info(f"Update faild: {response.text}")
+        return {"status": "failed", "error": response.text}

@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 # from pymongo import MongoClient
 from utils.token_management import refresh_token_task
 from utils.general import batch_list
-from services.whatsapp import schedule_whatsapp_message
+from services.whatsapp import schedule_whatsapp_message, update_business_image
 from services.mongo_database import get_company_id_from_phonenumber, add_chat_message
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
@@ -104,6 +104,10 @@ class MessageRequest(BaseModel):
 class AiSuggestion(BaseModel):
     title: str
     message: str
+
+class CompanyImageRequest(BaseModel):
+    companyId: str
+    image: str
 
 # Route to send a WhatsApp message to multiple recipients
 @app.post("/chat/send")
@@ -200,3 +204,11 @@ async def verify_webhook(
     if hub_mode == "subscribe" and hub_verify_token == VERIFY_TOKEN:
         return PlainTextResponse(hub_challenge)  # Respond with the challenge string
     return {"error": "Verification failed"}
+
+
+@app.put("/company/image")
+async def update_company_image(request: CompanyImageRequest):
+    company_id = request.companyId
+    image = request.image
+
+    update_business_image(company_id, image)
