@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from utils.token_management import refresh_token_task
 from utils.general import batch_list
 from services.whatsapp import schedule_whatsapp_message, update_business_image
-from services.mongo_database import get_company_id_from_phonenumber, add_chat_message
+from services.mongo_database import get_company_info, add_chat_message, update_message_whats_app_status
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from services.chatgpt import ChatGpt, MODELS, PROMPT, SYSTEM_INSTRUCTION
@@ -167,12 +167,21 @@ async def webhook(request: Request):
         logger.info("Webhook request")
         # Parse the incoming JSON
         data = await request.json()
-        logger.info(f"Main: whatsapp result: {data}")
+        logger.info(f"Main: WEBHOOK REQUEST: {data}")
 
         # Handle statuses if provided in the payload
         statuses = data.get("entry", [])
         for status in statuses:
             changes = status.get("changes")[0]["value"]
+            if "statuses" in list(changes.keys()):
+                update_status = changes["statuses"][0].get("status")
+                message_waid = changes["statuses"][0].get("id")
+                phone_number_client = changes["statuses"][0].get("recipient_id")
+                if message_waid:
+                    update_message_whats_app_status(message_waid, phone_number_client, update_status)
+                    logger.info(f"Main: UPDATE STATUS for {message_waid}.")
+                else:
+                    logger.error(f"Main: Failed to update status for {message_waid}; we couldn't retrieve it.")
             if "messages" in list(changes.keys()):
                 logger.info("new message")
                 client_name = changes.get("contacts")[0].get("profile").get("name") 
@@ -184,7 +193,7 @@ async def webhook(request: Request):
                 logger.info(f"message: {message} to: {phone_number_client}")
 
                 if len(message) > 0:
-                    company_id = get_company_id_from_phonenumber(phone_number_bot)
+                    company_id = get_company_info(phone_number_bot, "phone", "id")
                     logger.info(f"company: {company_id}")
                     if company_id:
                         add_chat_message(company_id, phone_number_client, message, datetime.now(timezone.utc), True, 'delivered', whatsapp_message_id, client_name)

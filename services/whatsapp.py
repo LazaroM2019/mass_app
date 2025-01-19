@@ -5,7 +5,7 @@ import requests
 import os
 from utils.logger import logger
 from datetime import datetime, timezone
-from services.mongo_database import add_chat_message, get_company_from_user, get_whatsapp_credentials, update_message_whats_app_status
+from services.mongo_database import add_chat_message, get_company_info, get_whatsapp_credentials, update_message_whats_app_status
 from templates.template_management import load_template
 from utils.image_procesor import save_base64_to_jpeg
 import uuid
@@ -39,8 +39,8 @@ def send_whatsapp_message(message_id, user_id, number, title_front, text_front, 
         "template": {}
     }
 
-    company_id = get_company_from_user(user_id, "id")
-    company_name = get_company_from_user(user_id, "name")
+    company_id = get_company_info(user_id, "user", "id")
+    company_name = get_company_info(user_id, "user", "name")
     logger.info(f"Company: {company_id}")
     account_id = get_whatsapp_credentials(company_id)
 
@@ -85,7 +85,7 @@ def send_whatsapp_message(message_id, user_id, number, title_front, text_front, 
             status_msg = json_response['messages'][0].get("message_status")
             message_id_whatsApp = json_response['messages'][0].get("id")
             if title == "chat_only":
-                add_chat_message(company_id, number, message, datetime.now(timezone.utc), False, status_msg, message_id_whatsApp)
+                add_chat_message(company_id, number, message, datetime.now(timezone.utc), False, status_msg, message_id_whatsApp, "", number_media_id)
             return {"status": "success", "message_sid": response.json()}
         else:
             logger.info(f"Message faild: {response.text}")
