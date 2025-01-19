@@ -100,6 +100,7 @@ class MessageRequest(BaseModel):
     image: str
     date: str
     messageId: str
+    doc: str
 
 class AiSuggestion(BaseModel):
     title: str
@@ -119,6 +120,7 @@ async def send_messages(request: MessageRequest):
     user_id = request.userId
     send_time_str = request.date
     message_id = request.messageId
+    doc_file = request.doc
 
     try:
         # Parse the input UTC datetime string
@@ -132,7 +134,7 @@ async def send_messages(request: MessageRequest):
     if utc_datetime > datetime.now(timezone.utc):
         # Format the datetime as needed
         send_time = utc_datetime.strftime("%Y-%m-%d %H:%M:%S")
-        schedule_whatsapp_message(message_id, user_id, title_msg, message, numbers, send_time, image)
+        schedule_whatsapp_message(message_id, user_id, title_msg, message, numbers, send_time, image, doc_file)
         return {"status": "scheduled", "message": f"Message scheduled for {send_time}"}
     else:
     # Send message to each recipient
@@ -140,7 +142,7 @@ async def send_messages(request: MessageRequest):
         for batch in batch_list(numbers, batch_size):
             time_now = datetime.now(timezone.utc)
             logger.info(f"Manin BATCH: {batch}")
-            schedule_whatsapp_message(message_id, user_id, title_msg, message, batch, time_now, image)
+            schedule_whatsapp_message(message_id, user_id, title_msg, message, batch, time_now, image, doc_file)
             asyncio.sleep(4)
         return {"status": "sent", "message": f"Message sent"}
 

@@ -1,13 +1,13 @@
 {
-    "name": "title_text_image_dynamic", 
+    "name": "document_dynamic_message", 
     "language": { "code": "en" },
     "components": [
         {
             "type": "header",
             "parameters": [
                 {
-                    "type": "image",
-                    "image": { "id": "" }
+                    "type": "document",
+                    "document": { "id": "" }
                 }
             ]
         },

@@ -27,7 +27,7 @@ HEADERS = {
 }
 
 # Function to send a WhatsApp message
-def send_whatsapp_message(message_id, user_id, number, title_front, text_front, image_base64):
+def send_whatsapp_message(message_id, user_id, number, title_front, text_front, image_base64, doc_base64):
     title = title_front + "\r"
     logger.info(repr(text_front))    
     text_front = re.sub(r'(\r\n){4,}', '\r\n' * 3, text_front)
@@ -44,14 +44,14 @@ def send_whatsapp_message(message_id, user_id, number, title_front, text_front, 
     account_id = get_whatsapp_credentials(company_id)
 
     
-    if image_base64 == "": # and doc_base64 == ""
+    if image_base64 == "" and doc_base64 == "":
         if title != "chat_only":
             payload["template"] = load_template(name="general",title=title, message=message)
         
         if title == "chat_only":
             payload["template"] = load_template(name="chat_only", message=message)
 
-    if image_base64 != "":
+    if image_base64 != "" and doc_base64 == "":
         key_name = f"{str(uuid.uuid4())}.jpeg"
         path_file = save_base64_to_jpeg(image_base64, key_name)
         number_media_id = upload_media(account_id,path_file, "image")
@@ -61,10 +61,18 @@ def send_whatsapp_message(message_id, user_id, number, title_front, text_front, 
 
         if title == "chat_only":
             payload["template"] = load_template(name="image",title=title, message=message, media_id=number_media_id)
+    
+    if doc_base64 != "":
+        pdf_name = f"{str(uuid.uuid4())}.pdf"
+        path_file = save_base64_to_jpeg(doc_base64, pdf_name)
+        number_media_id = upload_media(account_id,path_file, "document")
 
-    
-    # if doc_base64 != "": same logic
-    
+        if title != "chat_only":
+            payload["template"] = load_template(name="document_general",title=title, message=message, media_id=number_media_id)
+
+        if title == "chat_only":
+            payload["template"] = load_template(name="document_general",title=title, message=message, media_id=number_media_id)
+
     try:
         URL_WHATSAPP = f"https://graph.facebook.com/v21.0/{account_id}/messages"
         logger.info(f"Sending message to: {number}")
@@ -87,18 +95,22 @@ def send_whatsapp_message(message_id, user_id, number, title_front, text_front, 
 
 
 # Function to schedule a WhatsApp message
-def schedule_whatsapp_message(message_id, user_id, title, message, numbers, send_time, image):
+def schedule_whatsapp_message(message_id, user_id, title, message, numbers, send_time, image, doc_file):
     for number in numbers:
         scheduler.add_job(
             send_whatsapp_message,
             'date',
             run_date=send_time,
-            args=[message_id, user_id, number, title, message, image],
+            args=[message_id, user_id, number, title, message, image, doc_file],
             misfire_grace_time=30 
         )
 
 def upload_media(phone_number_id: str, file_name: str, type_of_file: str):
-    file_type = "image/jpeg" if type_of_file == "image" else "document"
+    if type_of_file == "image":
+        file_type = "image/jpeg" 
+    if type_of_file == "document":
+        file_type = "application/pdf"
+    
     name = file_name.split("/")[-1]
     url = f"https://graph.facebook.com/v21.0/{phone_number_id}/media"
     headers = {
@@ -114,6 +126,7 @@ def upload_media(phone_number_id: str, file_name: str, type_of_file: str):
     response = requests.post(url, headers=headers, data=payload_data, files=files)
     if response.status_code == 200:
         media_id = response.json()["id"]
+        logger.info("Upload file successfully!!!")
     else:
         logger.error(response.text)
     return media_id
