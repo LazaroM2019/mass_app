@@ -10,7 +10,10 @@
         },
         {
             "type": "body",
-            "parameters": [{"type": "text", "text": ""}]
+            "parameters": [
+                {"type": "text", "text": ""},
+                {"type": "text", "text": ""}
+            ]
         }
     ]
 }

@@ -100,14 +100,16 @@ def get_company_id_from_phonenumber(phone_number):
     return None
 
 @staticmethod
-def get_company_from_user(user_id):
+def get_company_from_user(user_id, field_required):
     mongo_service = MongoDBService()
 
     filter = {"users":  ObjectId(user_id) }
 
     company = mongo_service.get_document_by_filter("companies", filter)
 
-    if company is not None and company["_id"] is not None:
-        return str(company["_id"])
-    
+    if company is not None:
+        if field_required == "id" and company["_id"] is not None:
+            return str(company["_id"])
+        if field_required == "name" and company["name"] is not None:
+            return str(company["name"])
     return None

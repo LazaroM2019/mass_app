@@ -39,7 +39,8 @@ def send_whatsapp_message(message_id, user_id, number, title_front, text_front, 
         "template": {}
     }
 
-    company_id = get_company_from_user(user_id)
+    company_id = get_company_from_user(user_id, "id")
+    company_name = get_company_from_user(user_id, "name")
     logger.info(f"Company: {company_id}")
     account_id = get_whatsapp_credentials(company_id)
 
@@ -67,11 +68,11 @@ def send_whatsapp_message(message_id, user_id, number, title_front, text_front, 
         path_file = save_base64_to_jpeg(doc_base64, pdf_name)
         number_media_id = upload_media(account_id,path_file, "document")
 
-        # if title != "chat_only":
-        payload["template"] = load_template(name="document_general", message=message, media_id=number_media_id, company_name="masschat")
+        if title != "chat_only":
+            payload["template"] = load_template(name="document_general", title=title, message=message, media_id=number_media_id, company_name=company_name)
 
-        # if title == "chat_only":
-        #     payload["template"] = load_template(name="document_general", message=message, media_id=number_media_id, company_name="masschat")
+        if title == "chat_only":
+            payload["template"] = load_template(name="document", message=message, media_id=number_media_id, company_name="masschat")
 
     try:
         URL_WHATSAPP = f"https://graph.facebook.com/v21.0/{account_id}/messages"
