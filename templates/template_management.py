@@ -1,6 +1,6 @@
 import json
 
-def load_template(name: str, title=None, message=None, media_id=None):
+def load_template(name: str, title=None, message=None, media_id=None, company_name="MassChat"):
     if "general_image" == name:
         template_path = "templates/schema/title_text_image_dynamic.json"
     if "image" == name:
@@ -32,7 +32,7 @@ def load_template(name: str, title=None, message=None, media_id=None):
     
     if "document_general" == name:
         template_schema["components"][0]["parameters"][0]["document"]["id"] = media_id
-        template_schema["components"][1]["parameters"][0]["text"] = title
-        template_schema["components"][1]["parameters"][1]["text"] = message
+        template_schema["components"][1]["parameters"][0]["text"] = message
+        template_schema["components"][1]["parameters"][1]["text"] = company_name
 
     return template_schema

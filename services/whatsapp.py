@@ -67,11 +67,11 @@ def send_whatsapp_message(message_id, user_id, number, title_front, text_front, 
         path_file = save_base64_to_jpeg(doc_base64, pdf_name)
         number_media_id = upload_media(account_id,path_file, "document")
 
-        if title != "chat_only":
-            payload["template"] = load_template(name="document_general",title=title, message=message, media_id=number_media_id)
+        # if title != "chat_only":
+        payload["template"] = load_template(name="document_general", message=message, media_id=number_media_id, company_name="masschat")
 
-        if title == "chat_only":
-            payload["template"] = load_template(name="document_general",title=title, message=message, media_id=number_media_id)
+        # if title == "chat_only":
+        #     payload["template"] = load_template(name="document_general", message=message, media_id=number_media_id, company_name="masschat")
 
     try:
         URL_WHATSAPP = f"https://graph.facebook.com/v21.0/{account_id}/messages"
