@@ -179,9 +179,9 @@ async def webhook(request: Request):
                 phone_number_client = changes["statuses"][0].get("recipient_id")
                 if message_waid:
                     update_message_whats_app_status(message_waid, phone_number_client, update_status)
-                    logger.info(f"Main: UPDATE STATUS for {message_waid}.")
+                    logger.info(f"Main: UPDATE STATUS for message_id: {message_waid}.")
                 else:
-                    logger.error(f"Main: Failed to update status for {message_waid}; we couldn't retrieve it.")
+                    logger.error(f"Main: Failed to update status for message_id: {message_waid}; we couldn't retrieve it.")
             if "messages" in list(changes.keys()):
                 logger.info("new message")
                 client_name = changes.get("contacts")[0].get("profile").get("name") 
