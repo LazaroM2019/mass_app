@@ -11,7 +11,7 @@ def load_template(name: str, title=None, message=None, media_id=None, company_na
         template_path = "templates/schema/chat_only_dinamyc.json"
     if "document" == name:
         template_path = "templates/schema/document_dynamic.json"
-    if "general_document":
+    if "document_general" == name:
         template_path = "templates/schema/title_text_document_dynamic.json"
     with open(template_path, "r") as file:
         template_schema = json.load(file)

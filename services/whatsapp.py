@@ -52,7 +52,7 @@ def send_whatsapp_message(message_id, user_id, number, title_front, text_front, 
         if title == "chat_only":
             payload["template"] = load_template(name="chat_only", message=message)
 
-    if image_base64 != "" and doc_base64 == "":
+    if image_base64 != "":
         key_name = f"{str(uuid.uuid4())}.jpeg"
         path_file = save_base64_to_jpeg(image_base64, key_name)
         number_media_id = upload_media(account_id,path_file, "image")
