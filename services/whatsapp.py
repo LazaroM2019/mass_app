@@ -10,6 +10,7 @@ from templates.template_management import load_dynamic_template
 from utils.image_procesor import save_base64_to_jpeg
 import uuid
 import re
+from services.telegram import TelegramService
 
 # Initialize the scheduler (ensure it's started only once)
 executors = {
@@ -25,6 +26,8 @@ HEADERS = {
     "Authorization": f"Bearer {WHATSAPP_AUTH_TOKEN}",
     "Content-Type": "application/json"
 }
+
+telegram_service = TelegramService()
 
 # Function to send a WhatsApp message
 def send_whatsapp_message(message_id, user_id, number, title_front, text_front, image_base64, doc_base64):
@@ -51,9 +54,11 @@ def send_whatsapp_message(message_id, user_id, number, title_front, text_front, 
             return {"status": "success", "message_sid": response.json()}
         else:
             logger.info(f"Message faild: {response.text}")
+            telegram_service.send_message(f"WHATSAPP API FALIED for {number}: {response.text}")
             return {"status": "failed", "error": response.text}
     except Exception as e:
         logger.error(str(e))
+        telegram_service.send_message("WhatsApp exception")
         return {"status": "failed", "error": str(e)}
 
 
@@ -79,19 +84,23 @@ def upload_media(phone_number_id: str, file_name: str, type_of_file: str):
     headers = {
         "Authorization": f"Bearer {WHATSAPP_AUTH_TOKEN}"
     }
-    files = {
-        'file': (name, open(file_name, 'rb'), file_type),
-    }
-    payload_data = {
-        'messaging_product': 'whatsapp',
-    }
     
-    response = requests.post(url, headers=headers, data=payload_data, files=files)
-    if response.status_code == 200:
-        media_id = response.json()["id"]
-        logger.info("Upload file successfully!!!")
-    else:
-        logger.error(response.text)
+    with open(file_name, 'rb') as file:
+        files = {
+            'file': (name, file, file_type),
+        }
+        payload_data = {
+            'messaging_product': 'whatsapp',
+        }
+    
+        response = requests.post(url, headers=headers, data=payload_data, files=files)
+        if response.status_code == 200:
+            media_id = response.json()["id"]
+            logger.info("Upload file successfully!!!")
+        else:
+            logger.error(response.text)
+    
+    os.remove(file_name)
     return media_id
 
 
@@ -180,6 +189,7 @@ def update_business_image(company_id, image_base64):
         return {"status": "success", "message_sid": response.json()}
     else:
         logger.info(f"Update faild: {response.text}")
+        telegram_service.send_message(f"Update image error: {response.text}")
         return {"status": "failed", "error": response.text}
 
 
@@ -204,7 +214,7 @@ def send_initial_message(message_id, account_id, number, title, message, image_b
     if doc_base64 != "":
         pdf_name = f"{str(uuid.uuid4())}.pdf"
         path_file = save_base64_to_jpeg(doc_base64, pdf_name)
-        number_media_id = upload_media(account_id,path_file, "document")
+        number_media_id = upload_media(account_id, path_file, "document")
         
         payload["template"] = load_dynamic_template(name="general_doc_dynamic", title=title, message=message, media_id=number_media_id)
 
