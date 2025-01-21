@@ -1,20 +1,21 @@
 {
-    "name": "image_dynamic_message", 
+    "name": "general_doc_dynamic", 
     "language": { "code": "en" },
     "components": [
         {
             "type": "header",
             "parameters": [
                 {
-                    "type": "image",
-                    "image": { "id": "" }
+                    "type": "document",
+                    "document": { "id": "" }
                 }
             ]
         },
         {
             "type": "body",
             "parameters": [
-                { "type": "text", "text": "" }
+                {"type": "text", "text": ""},
+                {"type": "text", "text": ""}
             ]
         }
     ]

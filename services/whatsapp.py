@@ -5,8 +5,8 @@ import requests
 import os
 from utils.logger import logger
 from datetime import datetime, timezone
-from services.mongo_database import add_chat_message, get_company_from_user, get_whatsapp_credentials, update_message_whats_app_status
-from templates.template_management import load_template
+from services.mongo_database import add_chat_message, get_company_info, get_whatsapp_credentials, update_message_whats_app_status
+from templates.template_management import load_dynamic_template
 from utils.image_procesor import save_base64_to_jpeg
 import uuid
 import re
@@ -27,56 +27,28 @@ HEADERS = {
 }
 
 # Function to send a WhatsApp message
-def send_whatsapp_message(message_id, user_id, number, title_front, text_front, image_base64):
+def send_whatsapp_message(message_id, user_id, number, title_front, text_front, image_base64, doc_base64):
     title = title_front + "\r"
     logger.info(repr(text_front))    
     text_front = re.sub(r'(\r\n){4,}', '\r\n' * 3, text_front)
     message = text_front.replace("\r\n", "\r")
-    payload = {
-        "messaging_product": "whatsapp",
-        "to": number,
-        "type": "template",
-        "template": {}
-    }
 
-    company_id = get_company_from_user(user_id)
+    company_id = get_company_info(user_id, "user", "id")
     logger.info(f"Company: {company_id}")
     account_id = get_whatsapp_credentials(company_id)
 
-    
-    if image_base64 == "": # and doc_base64 == ""
-        if title != "chat_only":
-            payload["template"] = load_template(name="general",title=title, message=message)
-        
-        if title == "chat_only":
-            payload["template"] = load_template(name="chat_only", message=message)
-
-    if image_base64 != "":
-        key_name = f"{str(uuid.uuid4())}.jpeg"
-        path_file = save_base64_to_jpeg(image_base64, key_name)
-        number_media_id = upload_media(account_id,path_file, "image")
-
-        if title != "chat_only":
-            payload["template"] = load_template(name="general_image",title=title, message=message, media_id=number_media_id)
-
-        if title == "chat_only":
-            payload["template"] = load_template(name="image",title=title, message=message, media_id=number_media_id)
-
-    
-    # if doc_base64 != "": same logic
-    
     try:
-        URL_WHATSAPP = f"https://graph.facebook.com/v21.0/{account_id}/messages"
-        logger.info(f"Sending message to: {number}")
-        response = requests.post(URL_WHATSAPP, headers=HEADERS, json=payload)
+        if title_front == "chat_only":
+            logger.info(f"Sending chat message to: {number}")
+            response = send_chat_message(company_id, account_id, number, message, image_base64, doc_base64)
+        else:
+            logger.info(f"Sending initial message to: {number}")
+            response = send_initial_message(account_id, number, title, message, image_base64, doc_base64)
+
         if response.status_code == 200:
             json_response = response.json()
             logger.info(f"WHATSAPP: Message sent successfully {json_response}")
-            update_message_whats_app_status(message_id, number, "delivered")
-            status_msg = json_response['messages'][0].get("message_status")
-            message_id_whatsApp = json_response['messages'][0].get("id")
-            if title == "chat_only":
-                add_chat_message(company_id, number, message, datetime.now(timezone.utc), False, status_msg, message_id_whatsApp)
+            update_message_whats_app_status(message_id, number, "delivered")            
             return {"status": "success", "message_sid": response.json()}
         else:
             logger.info(f"Message faild: {response.text}")
@@ -87,18 +59,22 @@ def send_whatsapp_message(message_id, user_id, number, title_front, text_front, 
 
 
 # Function to schedule a WhatsApp message
-def schedule_whatsapp_message(message_id, user_id, title, message, numbers, send_time, image):
+def schedule_whatsapp_message(message_id, user_id, title, message, numbers, send_time, image, doc_file):
     for number in numbers:
         scheduler.add_job(
             send_whatsapp_message,
             'date',
             run_date=send_time,
-            args=[message_id, user_id, number, title, message, image],
+            args=[message_id, user_id, number, title, message, image, doc_file],
             misfire_grace_time=30 
         )
 
 def upload_media(phone_number_id: str, file_name: str, type_of_file: str):
-    file_type = "image/jpeg" if type_of_file == "image" else "document"
+    if type_of_file == "image":
+        file_type = "image/jpeg" 
+    if type_of_file == "document":
+        file_type = "application/pdf"
+    
     name = file_name.split("/")[-1]
     url = f"https://graph.facebook.com/v21.0/{phone_number_id}/media"
     headers = {
@@ -114,6 +90,7 @@ def upload_media(phone_number_id: str, file_name: str, type_of_file: str):
     response = requests.post(url, headers=headers, data=payload_data, files=files)
     if response.status_code == 200:
         media_id = response.json()["id"]
+        logger.info("Upload file successfully!!!")
     else:
         logger.error(response.text)
     return media_id
@@ -205,3 +182,82 @@ def update_business_image(company_id, image_base64):
     else:
         logger.info(f"Update faild: {response.text}")
         return {"status": "failed", "error": response.text}
+
+
+def send_initial_message(account_id, number, title, message, image_base64, doc_base64):
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": number,
+        "type": "template",
+        "template": {}
+    }
+
+    if image_base64 == "" and doc_base64 == "":        
+        payload["template"] = load_dynamic_template(name="general_text_dynamic",title=title, message=message)
+        
+    if image_base64 != "":
+        key_name = f"{str(uuid.uuid4())}.jpeg"
+        path_file = save_base64_to_jpeg(image_base64, key_name)
+        number_media_id = upload_media(account_id,path_file, "image")
+
+        payload["template"] = load_dynamic_template(name="general_image_dynamic",title=title, message=message, media_id=number_media_id)
+    
+    if doc_base64 != "":
+        pdf_name = f"{str(uuid.uuid4())}.pdf"
+        path_file = save_base64_to_jpeg(doc_base64, pdf_name)
+        number_media_id = upload_media(account_id,path_file, "document")
+        
+        payload["template"] = load_dynamic_template(name="general_doc_dynamic", title=title, message=message, media_id=number_media_id)
+
+    URL_WHATSAPP = f"https://graph.facebook.com/v21.0/{account_id}/messages"
+    return requests.post(URL_WHATSAPP, headers=HEADERS, json=payload)
+
+def send_chat_message(company_id, account_id, number, message, image_base64, doc_base64):
+    URL_WHATSAPP = f"https://graph.facebook.com/v21.0/{account_id}/messages"
+    
+    number_media_id = ""
+
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": "59897222006",
+        "recipient_type": "individual"
+    }
+
+    if image_base64 == "" and doc_base64 == "":
+        payload["text"] = {
+            "body": message
+        }
+
+    if image_base64 != "":
+        key_name = f"{str(uuid.uuid4())}.jpeg"
+        path_file = save_base64_to_jpeg(image_base64, key_name)
+        number_media_id = upload_media(account_id,path_file, "image")
+
+        payload["type"] = "image"
+        payload["image"] = {
+            "caption": message,
+            "id": number_media_id
+        }
+    
+    if doc_base64 != "":
+        pdf_name = f"{str(uuid.uuid4())}.pdf"
+        path_file = save_base64_to_jpeg(doc_base64, pdf_name)
+        number_media_id = upload_media(account_id,path_file, "document")
+
+        payload["type"] = "document"
+        payload["document"] = {
+            "caption": message,
+            "id": number_media_id,
+            "filename": "documento-pdf"
+        }
+    
+    response = requests.post(URL_WHATSAPP, headers=HEADERS, json=payload)
+    json_response = response.json()
+    logger.info(json_response)
+
+    message_id_whatsApp = json_response['messages'][0].get("id")
+    
+    if response.status_code == 200:
+        add_chat_message(company_id, number, message, datetime.now(timezone.utc), False, 'delivered', message_id_whatsApp, "", number_media_id)
+
+    return response

@@ -33,7 +33,7 @@ class MongoDBService:
         self.client.close()
 
 @staticmethod
-def add_chat_message(company_id, number, text, date, is_client, status, message_id, client_name=""):
+def add_chat_message(company_id, number, text, date, is_client, status, message_id, client_name="", media_id=""):
     mongo_service = MongoDBService()
 
     query = {"companyId": company_id, "number": number}
@@ -50,7 +50,8 @@ def add_chat_message(company_id, number, text, date, is_client, status, message_
             "is_client": is_client,
             "new": is_client,
             "status": status,
-            "id": message_id
+            "id": message_id,
+            "media_id": media_id
             }
         }
     }
@@ -87,27 +88,62 @@ def get_whatsapp_credentials(company_id):
     return WHATSAPP_ACCOUNT_SID
 
 @staticmethod
-def get_company_id_from_phonenumber(phone_number):
+def get_company_info(search_value, search_by="user", field_required="id"):
+    """
+    Retrieves company information based on a search value and criteria.
+
+    Args:
+        search_value: The value to search for (phone number or user ID).
+        search_by: The field to search by ("phone" or "user").
+        field_required: The field to return from the company document ("id" or "name").
+
+    Returns:
+        The requested field value as a string, or None if not found.
+    """
     mongo_service = MongoDBService()
 
-    filter = {"phone": phone_number} 
+    # Determine the filter based on search criteria
+    if search_by == "phone":
+        filter = {"phone": search_value}
+    elif search_by == "user":
+        filter = {"users": ObjectId(search_value)}
+    else:
+        raise ValueError("Invalid search_by value. Use 'phone' or 'user'.")
 
+    # Query the database
     company = mongo_service.get_document_by_filter("companies", filter)
 
-    if company is not None and company["_id"] is not None:
-        return str(company["_id"])
-    
+    # Extract the requested field
+    if company is not None:
+        if field_required == "id" and company.get("_id") is not None:
+            return str(company["_id"])
+        if field_required == "name" and company.get("name") is not None:
+            return str(company["name"])
+
     return None
+# def get_company_id_from_phonenumber(phone_number):
+#     mongo_service = MongoDBService()
 
-@staticmethod
-def get_company_from_user(user_id):
-    mongo_service = MongoDBService()
+#     filter = {"phone": phone_number} 
 
-    filter = {"users":  ObjectId(user_id) }
+#     company = mongo_service.get_document_by_filter("companies", filter)
 
-    company = mongo_service.get_document_by_filter("companies", filter)
-
-    if company is not None and company["_id"] is not None:
-        return str(company["_id"])
+#     if company is not None and company["_id"] is not None:
+#         return str(company["_id"])
     
-    return None
+#     return None
+
+# @staticmethod
+# def get_company_from_user(user_id, field_required):
+#     mongo_service = MongoDBService()
+
+#     filter = {"users":  ObjectId(user_id) }
+
+#     company = mongo_service.get_document_by_filter("companies", filter)
+
+#     if company is not None:
+#         if field_required == "id" and company["_id"] is not None:
+#             return str(company["_id"])
+#         if field_required == "name" and company["name"] is not None:
+#             return str(company["name"])
+#     return None

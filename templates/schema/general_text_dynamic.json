@@ -1,5 +1,5 @@
 {
-    "name": "general_dynamic_message",
+    "name": "general_text_dynamic",
     "language": {
         "code": "en"
     },
@@ -10,7 +10,9 @@
         },
         {
             "type": "body",
-            "parameters": [{"type": "text", "text": ""}]
+            "parameters": [
+                {"type": "text", "text": ""}                
+            ]
         }
     ]
 }
