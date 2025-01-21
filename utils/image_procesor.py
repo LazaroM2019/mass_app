@@ -13,7 +13,7 @@ def save_base64_to_jpeg(base64_code, filename):
     Returns:
         str: The path to the saved image.
     """
-    output_folder = os.getenv("IMAGES_TEMP_FOLDER")
+    output_folder = "temp_files"
     # Ensure the output folder exists
     os.makedirs(output_folder, exist_ok=True)
 
