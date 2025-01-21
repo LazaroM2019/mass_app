@@ -43,12 +43,11 @@ def send_whatsapp_message(message_id, user_id, number, title_front, text_front, 
             response = send_chat_message(company_id, account_id, number, message, image_base64, doc_base64)
         else:
             logger.info(f"Sending initial message to: {number}")
-            response = send_initial_message(account_id, number, title, message, image_base64, doc_base64)
+            response = send_initial_message(message_id, account_id, number, title, message, image_base64, doc_base64)
 
         if response.status_code == 200:
             json_response = response.json()
-            logger.info(f"WHATSAPP: Message sent successfully {json_response}")
-            update_message_whats_app_status(message_id, number, "delivered")            
+            logger.info(f"WHATSAPP: Message sent successfully {json_response}")        
             return {"status": "success", "message_sid": response.json()}
         else:
             logger.info(f"Message faild: {response.text}")
@@ -184,7 +183,7 @@ def update_business_image(company_id, image_base64):
         return {"status": "failed", "error": response.text}
 
 
-def send_initial_message(account_id, number, title, message, image_base64, doc_base64):
+def send_initial_message(message_id, account_id, number, title, message, image_base64, doc_base64):
     payload = {
         "messaging_product": "whatsapp",
         "to": number,
@@ -210,7 +209,15 @@ def send_initial_message(account_id, number, title, message, image_base64, doc_b
         payload["template"] = load_dynamic_template(name="general_doc_dynamic", title=title, message=message, media_id=number_media_id)
 
     URL_WHATSAPP = f"https://graph.facebook.com/v21.0/{account_id}/messages"
-    return requests.post(URL_WHATSAPP, headers=HEADERS, json=payload)
+    response = requests.post(URL_WHATSAPP, headers=HEADERS, json=payload)
+
+    if response.status_code == 200:
+        json_response = response.json()
+        message_wa_id = json_response["messages"][0]["id"]
+        logger.info(f"Message WA ID: {message_wa_id}")
+        update_message_whats_app_status(message_id, number, "delivered", message_wa_id)            
+    
+    return response
 
 def send_chat_message(company_id, account_id, number, message, image_base64, doc_base64):
     URL_WHATSAPP = f"https://graph.facebook.com/v21.0/{account_id}/messages"

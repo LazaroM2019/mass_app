@@ -59,13 +59,30 @@ def add_chat_message(company_id, number, text, date, is_client, status, message_
     mongo_service.upsert_to_collection("chats_history", query, update)
 
 @staticmethod
-def update_message_whats_app_status(message_id, number, status):
+def update_message_whats_app_status(message_id, number, status, message_wa_id):
     mongo_service = MongoDBService()
 
     mongo_service.update_one(
         "messages", 
         { 
             "_id": ObjectId(message_id), 
+            "numbers.number": number 
+        },
+        { 
+            "$set": { 
+                "numbers.$.status": status,
+                "numbers.$.wa_id": message_wa_id
+                }
+        })
+    
+@staticmethod
+def update_wa_message_whats_app_status(message_wa_id, number, status):
+    mongo_service = MongoDBService()
+
+    mongo_service.update_one(
+        "messages", 
+        { 
+            "numbers.wa_id": message_wa_id, 
             "numbers.number": number 
         },
         { 
