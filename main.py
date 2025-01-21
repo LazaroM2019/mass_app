@@ -19,6 +19,7 @@ from services.chatgpt import ChatGpt, MODELS, PROMPT, SYSTEM_INSTRUCTION
 from datetime import datetime, timezone, timedelta
 import pytz
 from dotenv import load_dotenv
+from services.telegram import TelegramService
 
 # Configure logging
 logging.basicConfig(
@@ -29,6 +30,7 @@ logging.basicConfig(
 load_dotenv()
 
 logger = logging.getLogger("uvicorn")
+telegram_service = TelegramService()
 
 # MongoDB connection settings
 # CONNECTION_STRING = os.getenv("MONGODB_CONNECTION_STRING")
@@ -204,6 +206,7 @@ async def webhook(request: Request):
         return {"status": "success"}
     except Exception as e:
         print(f"Error processing webhook: {e}")
+        telegram_service.send_message("Webhook Error")
         return {"status": "error", "message": str(e)}
     
 
