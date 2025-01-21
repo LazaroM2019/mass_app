@@ -1,12 +1,15 @@
 {
-    "name": "general_dynamic_message",
-    "language": {
-        "code": "en"
-    },
+    "name": "general_image_dynamic", 
+    "language": { "code": "en" },
     "components": [
         {
             "type": "header",
-            "parameters": [{"type": "text", "text": ""}]
+            "parameters": [
+                {
+                    "type": "image",
+                    "image": { "id": "" }
+                }
+            ]
         },
         {
             "type": "body",

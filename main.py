@@ -175,6 +175,7 @@ async def webhook(request: Request):
             changes = status.get("changes")[0]["value"]
             if "statuses" in list(changes.keys()):
                 update_status = changes["statuses"][0].get("status")
+                logger.info(f"Webhook Status: {update_status}")
                 message_waid = changes["statuses"][0].get("id")
                 phone_number_client = changes["statuses"][0].get("recipient_id")
                 if message_waid:
