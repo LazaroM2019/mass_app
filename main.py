@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from utils.token_management import refresh_token_task
 from utils.general import batch_list
 from services.whatsapp import schedule_whatsapp_message, update_business_image
-from services.mongo_database import get_company_info, add_chat_message, update_message_whats_app_status
+from services.mongo_database import get_company_info, add_chat_message, update_wa_message_whats_app_status
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from services.chatgpt import ChatGpt, MODELS, PROMPT, SYSTEM_INSTRUCTION
@@ -175,12 +175,12 @@ async def webhook(request: Request):
             changes = status.get("changes")[0]["value"]
             if "statuses" in list(changes.keys()):
                 update_status = changes["statuses"][0].get("status")
-                logger.info(f"Webhook Status: {update_status}")
                 message_waid = changes["statuses"][0].get("id")
                 phone_number_client = changes["statuses"][0].get("recipient_id")
-                if message_waid:
-                    # here is message look by phone number
-                    #update_message_whats_app_status(message_waid, phone_number_client, update_status)
+                logger.info(f"Client Number: {phone_number_client}")
+                logger.info(f"Webhook Status: {update_status}")
+                if message_waid:            
+                    update_wa_message_whats_app_status(message_waid, phone_number_client, update_status)
                     logger.info(f"Main: UPDATE STATUS for message_id: {message_waid}.")
                 else:
                     logger.error(f"Main: Failed to update status for message_id: {message_waid}; we couldn't retrieve it.")
