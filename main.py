@@ -169,6 +169,10 @@ async def chat_suggestion(request: AiSuggestion):
 
     return outputs
 
+@app.post("/ai/summary")
+async def messages_summary(request: AiSuggestion):
+    pass
+
 @app.post("/webhook")
 async def webhook(request: Request):
     try:
