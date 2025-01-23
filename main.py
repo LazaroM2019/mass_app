@@ -1,5 +1,6 @@
+import base64
 from fastapi import FastAPI, HTTPException, Request, Query
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import PlainTextResponse, StreamingResponse
 from pydantic import BaseModel
 import logging
 import os
@@ -11,8 +12,8 @@ from fastapi.middleware.cors import CORSMiddleware
 # from pymongo import MongoClient
 from utils.token_management import refresh_token_task
 from utils.general import batch_list
-from services.whatsapp import schedule_whatsapp_message, update_business_image
-from services.mongo_database import get_company_info, add_chat_message, update_wa_message_whats_app_status
+from services.whatsapp import download_media, schedule_whatsapp_message, update_business_image
+from services.mongo_database import get_company_info, add_chat_message, get_whatsapp_credentials, update_wa_message_whats_app_status
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from services.chatgpt import ChatGpt, MODELS, PROMPT, SYSTEM_INSTRUCTION
@@ -20,6 +21,7 @@ from datetime import datetime, timezone, timedelta
 import pytz
 from dotenv import load_dotenv
 from services.telegram import TelegramService
+import io
 
 # Configure logging
 logging.basicConfig(
@@ -112,6 +114,10 @@ class CompanyImageRequest(BaseModel):
     companyId: str
     image: str
 
+class MediaContentRequest(BaseModel):
+    companyId: str
+    media_id: str
+
 # Route to send a WhatsApp message to multiple recipients
 @app.post("/chat/send")
 async def send_messages(request: MessageRequest):
@@ -193,14 +199,23 @@ async def webhook(request: Request):
                 phone_number_bot = changes.get("metadata").get("display_phone_number")
                 phone_number_client = messages.get("from")
                 whatsapp_message_id = messages.get("id")
-                message = messages.get("text").get("body")
-                logger.info(f"message: {message} to: {phone_number_client}")
+                msg_type = messages.get("type")
 
+                if msg_type == "text":
+                    message = messages.get("text").get("body")
+                    logger.info(f"message: {message} to: {phone_number_client}")
+                
+                elif msg_type in ["image", "document"]:
+                    media = messages.get(msg_type, {})
+                    message = media.get("caption", None)
+                    media_id = media.get("id")
+                    logger.info(f"message: {message} to: {phone_number_client} with media: {msg_type}")
+                
                 if len(message) > 0:
                     company_id = get_company_info(phone_number_bot, "phone", "id")
                     logger.info(f"company: {company_id}")
                     if company_id:
-                        add_chat_message(company_id, phone_number_client, message, datetime.now(timezone.utc), True, 'delivered', whatsapp_message_id, client_name)
+                        add_chat_message(company_id, phone_number_client, message, datetime.now(timezone.utc), True, 'delivered', whatsapp_message_id, client_name, media_id)
 
         
         return {"status": "success"}
@@ -228,3 +243,15 @@ async def update_company_image(request: CompanyImageRequest):
     image = request.image
 
     update_business_image(company_id, image)
+
+@app.get("/company/{company_id}/media/{media_id}")
+async def get_media_content(company_id: str, media_id: str):
+
+    account_id = get_whatsapp_credentials(company_id)
+    logger.info(f"downloading image for: {account_id} - {media_id}")
+
+    media_content = download_media(media_id, account_id)
+    
+    base64_encoded = base64.b64encode(media_content).decode("utf-8")
+    
+    return {"base64_data": base64_encoded}

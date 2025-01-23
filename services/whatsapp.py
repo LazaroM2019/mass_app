@@ -278,3 +278,30 @@ def send_chat_message(company_id, account_id, number, message, image_base64, doc
         add_chat_message(company_id, number, message, datetime.now(timezone.utc), False, 'delivered', message_id_whatsApp, "", number_media_id)
 
     return response
+
+def download_media(media_id, number_id):
+    url = f"https://graph.facebook.com/v21.0/{media_id}?phone_number_id={number_id}"
+
+    response = requests.get(url, headers=HEADERS)
+
+    if response.status_code != 200:
+        logger.info("GET media url failed")
+        return None
+    
+    data = response.json()
+
+    media_url = data["url"]
+
+    logger.info(f"Media URL: {media_url}")
+
+    url = f"https://graph.facebook.com/v21.0/{media_url}"
+
+    response = requests.get(media_url, headers=HEADERS)
+
+    if response.status_code != 200:
+        logger.info("Download media failed")
+        return None
+    
+    media_content = response.content
+    
+    return media_content
