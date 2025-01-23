@@ -236,7 +236,7 @@ def send_chat_message(company_id, account_id, number, message, image_base64, doc
 
     payload = {
         "messaging_product": "whatsapp",
-        "to": "59897222006",
+        "to": number,
         "recipient_type": "individual"
     }
 
