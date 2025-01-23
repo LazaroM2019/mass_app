@@ -275,7 +275,7 @@ def send_chat_message(company_id, account_id, number, message, image_base64, doc
     message_id_whatsApp = json_response['messages'][0].get("id")
     
     if response.status_code == 200:
-        add_chat_message(company_id, number, message, datetime.now(timezone.utc), False, 'delivered', message_id_whatsApp, "", number_media_id)
+        add_chat_message(company_id, number, message, datetime.now(timezone.utc), False, 'delivered', message_id_whatsApp, "", number_media_id, payload["type"])
 
     return response
 

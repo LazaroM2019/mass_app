@@ -215,7 +215,7 @@ async def webhook(request: Request):
                     company_id = get_company_info(phone_number_bot, "phone", "id")
                     logger.info(f"company: {company_id}")
                     if company_id:
-                        add_chat_message(company_id, phone_number_client, message, datetime.now(timezone.utc), True, 'delivered', whatsapp_message_id, client_name, media_id)
+                        add_chat_message(company_id, phone_number_client, message, datetime.now(timezone.utc), True, 'delivered', whatsapp_message_id, client_name, media_id, msg_type)
 
         
         return {"status": "success"}

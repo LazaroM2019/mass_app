@@ -33,7 +33,7 @@ class MongoDBService:
         self.client.close()
 
 @staticmethod
-def add_chat_message(company_id, number, text, date, is_client, status, message_id, client_name="", media_id=""):
+def add_chat_message(company_id, number, text, date, is_client, status, message_id, client_name="", media_id="", media_type=""):
     mongo_service = MongoDBService()
 
     query = {"companyId": company_id, "number": number}
@@ -51,7 +51,8 @@ def add_chat_message(company_id, number, text, date, is_client, status, message_
             "new": is_client,
             "status": status,
             "id": message_id,
-            "media_id": media_id
+            "media_id": media_id,
+            "media_type": media_type
             }
         }
     }
