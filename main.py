@@ -207,11 +207,11 @@ async def webhook(request: Request):
                 
                 elif msg_type in ["image", "document"]:
                     media = messages.get(msg_type, {})
-                    message = media.get("caption", None)
+                    message = media.get("caption", "")
                     media_id = media.get("id")
                     logger.info(f"message: {message} to: {phone_number_client} with media: {msg_type}")
                 
-                if len(message) > 0:
+                if len(message) > 0 or media_id != None:
                     company_id = get_company_info(phone_number_bot, "phone", "id")
                     logger.info(f"company: {company_id}")
                     if company_id:
