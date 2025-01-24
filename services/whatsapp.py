@@ -5,7 +5,7 @@ import requests
 import os
 from utils.logger import logger
 from datetime import datetime, timezone
-from services.mongo_database import add_chat_message, get_company_info, get_whatsapp_credentials, update_message_whats_app_status
+from services.mongo_database import add_chat_message, get_company_info, get_whatsapp_credentials, is_number_baja, update_message_whats_app_status
 from templates.template_management import load_dynamic_template
 from utils.image_procesor import save_base64_to_jpeg
 import uuid
@@ -39,6 +39,10 @@ def send_whatsapp_message(message_id, user_id, number, title_front, text_front, 
     company_id = get_company_info(user_id, "user", "id")
     logger.info(f"Company: {company_id}")
     account_id = get_whatsapp_credentials(company_id)
+
+    if is_number_baja(company_id, number):
+        logger.info(f"Attempt to send message to a \"baja\" number: {number}")
+        return {"status": "error", "error": "baja number"}
 
     try:
         if title_front == "chat_only":
