@@ -5,7 +5,7 @@ import requests
 import os
 from utils.logger import logger
 from datetime import datetime, timezone
-from services.mongo_database import add_chat_message, get_company_info, get_whatsapp_credentials, is_number_baja, update_message_whats_app_status
+from services.mongo_database import add_chat_message, get_company, get_company_info, get_whatsapp_credentials, is_number_baja, update_message_whats_app_status
 from templates.template_management import load_dynamic_template
 from utils.image_procesor import save_base64_to_jpeg
 import uuid
@@ -50,7 +50,7 @@ def send_whatsapp_message(message_id, user_id, number, title_front, text_front, 
             response = send_chat_message(company_id, account_id, number, message, image_base64, doc_base64)
         else:
             logger.info(f"Sending initial message to: {number}")
-            response = send_initial_message(message_id, account_id, number, title, message, image_base64, doc_base64)
+            response = send_initial_message(company_id, message_id, account_id, number, title, message, image_base64, doc_base64)
 
         if response.status_code == 200:
             json_response = response.json()
@@ -197,7 +197,7 @@ def update_business_image(company_id, image_base64):
         return {"status": "failed", "error": response.text}
 
 
-def send_initial_message(message_id, account_id, number, title, message, image_base64, doc_base64):
+def send_initial_message(company_id, message_id, account_id, number, title, message, image_base64, doc_base64):
     payload = {
         "messaging_product": "whatsapp",
         "to": number,
@@ -221,6 +221,12 @@ def send_initial_message(message_id, account_id, number, title, message, image_b
         number_media_id = upload_media(account_id, path_file, "document")
         
         payload["template"] = load_dynamic_template(name="general_doc_dynamic", title=title, message=message, media_id=number_media_id)
+
+    company = get_company(company_id)
+
+    template = company.get("template", "")
+    if template != "":
+        payload["template"]["name"] += template
 
     URL_WHATSAPP = f"https://graph.facebook.com/v21.0/{account_id}/messages"
     response = requests.post(URL_WHATSAPP, headers=HEADERS, json=payload)

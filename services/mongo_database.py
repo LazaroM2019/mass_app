@@ -170,6 +170,18 @@ def is_number_baja(company_id, client_number):
 
     return record != None
 
+@staticmethod
+def get_company(company_id):
+    mongo_service = MongoDBService()
+
+    obj_company_id = ObjectId(company_id)
+    filter_id = {"_id": obj_company_id} 
+    company_by_id = mongo_service.get_document_by_filter("companies", filter_id)
+
+    if company_by_id is not None:
+        return company_by_id    
+    
+    return None
 # def get_company_id_from_phonenumber(phone_number):
 #     mongo_service = MongoDBService()
 
