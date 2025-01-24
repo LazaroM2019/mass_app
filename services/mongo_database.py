@@ -139,6 +139,37 @@ def get_company_info(search_value, search_by="user", field_required="id"):
             return str(company["name"])
 
     return None
+
+@staticmethod
+def baja_number(company_id, client_name, client_number):
+    mongo_service = MongoDBService()
+
+    mongo_service.upsert_to_collection("bajas", {
+        "company_id": company_id
+    }, 
+    {
+        "$set": {"company_id": company_id},
+        "$push": {"numbers": { "name": client_name, "number": client_number } }
+    })
+
+@staticmethod
+def activate_number_if_baja(company_id, client_number):
+    mongo_service = MongoDBService()
+    
+    mongo_service.update_one("bajas", 
+        {"company_id": company_id, "numbers.number": client_number},
+        {"$pull": {"numbers": {"number": client_number}}} 
+    )
+
+
+@staticmethod
+def is_number_baja(company_id, client_number):
+    mongo_service = MongoDBService()
+        
+    record = mongo_service.get_document_by_filter("bajas", {"company_id": company_id, "numbers.number": client_number})
+
+    return record != None
+
 # def get_company_id_from_phonenumber(phone_number):
 #     mongo_service = MongoDBService()
 

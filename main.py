@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from utils.token_management import refresh_token_task
 from utils.general import batch_list
 from services.whatsapp import download_media, schedule_whatsapp_message, update_business_image
-from services.mongo_database import get_company_info, add_chat_message, get_whatsapp_credentials, update_wa_message_whats_app_status
+from services.mongo_database import activate_number_if_baja, baja_number, get_company_info, add_chat_message, get_whatsapp_credentials, update_wa_message_whats_app_status
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from services.chatgpt import ChatGpt, MODELS, PROMPT, SYSTEM_INSTRUCTION
@@ -212,11 +212,17 @@ async def webhook(request: Request):
                     media_id = media.get("id")
                     logger.info(f"message: {message} to: {phone_number_client} with media: {msg_type}")
                 
-                if len(message) > 0 or media_id != None:
+                if message == "baja":
+                    company_id = get_company_info(phone_number_bot, "phone", "id")
+                    logger.info(f"New baja for: {company_id} - {client_name}")
+                    baja_number(company_id, client_name, phone_number_client)
+
+                elif len(message) > 0 or media_id != None:
                     company_id = get_company_info(phone_number_bot, "phone", "id")
                     logger.info(f"company: {company_id}")
                     if company_id:
                         add_chat_message(company_id, phone_number_client, message, datetime.now(timezone.utc), True, 'delivered', whatsapp_message_id, client_name, media_id, msg_type)
+                        activate_number_if_baja(company_id, phone_number_client)
 
         
         return {"status": "success"}
