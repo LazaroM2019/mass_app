@@ -201,6 +201,7 @@ async def webhook(request: Request):
                 whatsapp_message_id = messages.get("id")
                 msg_type = messages.get("type")
                 media_id = None
+                message = ""
 
                 if msg_type == "text":
                     message = messages.get("text").get("body")
