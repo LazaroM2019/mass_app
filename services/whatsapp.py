@@ -69,6 +69,10 @@ def send_whatsapp_message(message_id, user_id, number, title_front, text_front, 
 # Function to schedule a WhatsApp message
 def schedule_whatsapp_message(message_id, user_id, title, message, numbers, send_time, image, doc_file):
     for number in numbers:
+        now = datetime.now(timezone.utc)
+        if send_time < now:
+            send_time = now
+
         scheduler.add_job(
             send_whatsapp_message,
             'date',
