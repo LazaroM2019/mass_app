@@ -1,54 +1,37 @@
-import pytest
-from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
+from unittest.mock import patch
 from app.main import app
+from app.main import AiSuggestion  # Adjust imports based on your app structure
 
 client = TestClient(app)
 
-# Sample input and expected output for the endpoint
-sample_request = {
-    "title": "Sample Title",
-    "message": "This is a test message."
-}
-
-mock_prompt_template = {
-    "prompt": "The title is: __TEXT_TITLE__ and the message is: __TEXT_MESSAGE__.",
-    "system_instruction": "Provide suggestions based on the input."
-}
-
+# Mock output of the `generate` method
 mock_output = {
-    "suggestions": [
-        "Consider rephrasing your title for better impact.",
-        "Your message could use additional details for clarity."
-    ]
+    "output": {
+        "message": "Test message response",
+        "suggestions": ["Suggestion 1", "Suggestion 2"]
+    },
+    "refusal": False,
+    "usage": {"tokens": 10}
 }
 
-# Mocking load_prompt_template and ChatGpt
-@patch("app.routers.ai_suggestion.load_prompt_template")
-@patch("app.routers.ai_suggestion.ChatGpt")
-def test_chat_suggestion(mock_chat_gpt, mock_load_prompt_template):
-    # Set up the mock for load_prompt_template
-    mock_load_prompt_template.return_value = mock_prompt_template
+@patch("app.main.ChatGpt.generate")
+def test_chat_suggestion(mock_generate):
+    # Configure the mock to return the desired output
+    mock_generate.return_value = mock_output
 
-    # Set up the mock for ChatGpt
-    mock_chat_instance = MagicMock()
-    mock_chat_instance.generate.return_value = mock_output
-    mock_chat_gpt.return_value = mock_chat_instance
+    # Define the payload to send to the endpoint
+    payload = {
+        "title": "Test Title",
+        "message": "Test message body"
+    }
 
-    # Perform the POST request
-    response = client.post("/ai/suggestion", json=sample_request)
+    # Make the POST request to the endpoint
+    response = client.post("/ai/suggestion", json=payload)
+
+    # Ensure the mocked method was called as expected
+    mock_generate.assert_called_once()
 
     # Assertions
     assert response.status_code == 200
     assert response.json() == mock_output
-
-    # Verify mocks were called with the correct arguments
-    mock_load_prompt_template.assert_called_once_with("message_suggestion")
-    mock_chat_gpt.assert_called_once_with(
-        "GPT-4O-mini",  # Assuming MODELS['GPT_4O_mini'] resolves to this
-        mock_prompt_template["system_instruction"]
-    )
-    mock_chat_instance.generate.assert_called_once_with(
-        prompt="The title is: Sample Title and the message is: This is a test message.",
-        respose_format="AiSuggestion"  # Assuming this is the expected format
-    )

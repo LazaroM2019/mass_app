@@ -1,16 +1,16 @@
 import base64
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.executors.pool import ThreadPoolExecutor
 import requests
 import os
-from utils.logger import logger
-from datetime import datetime, timezone
-from services.mongo_database import add_chat_message, get_company_info, get_whatsapp_credentials, update_message_whats_app_status
-from templates.template_management import load_dynamic_template
-from utils.image_procesor import save_base64_to_jpeg
 import uuid
 import re
-from services.telegram import TelegramService
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.executors.pool import ThreadPoolExecutor
+from app.utils.logger import logger
+from app.services.mongo_database import add_chat_message, get_company_info, get_whatsapp_credentials, update_message_whats_app_status
+from app.templates.template_management import load_dynamic_template
+from app.utils.image_procesor import save_base64_to_jpeg
+from app.services.telegram import TelegramService
+from datetime import datetime, timezone
 
 # Initialize the scheduler (ensure it's started only once)
 executors = {

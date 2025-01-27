@@ -5,22 +5,17 @@ import logging
 import os
 import time
 import asyncio
-import requests
-import traceback
-from fastapi.middleware.cors import CORSMiddleware
-# from pymongo import MongoClient
-from utils.token_management import refresh_token_task
-from utils.general import batch_list
-from services.whatsapp import schedule_whatsapp_message, update_business_image
-from services.mongo_database import get_company_info, add_chat_message, update_wa_message_whats_app_status
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.interval import IntervalTrigger
-from services.chatgpt import ChatGpt, MODELS
-from templates.template_management import load_prompt_template
-from datetime import datetime, timezone, timedelta
 import pytz
+from fastapi.middleware.cors import CORSMiddleware
+from app.utils.general import batch_list
+from app.services.whatsapp import schedule_whatsapp_message, update_business_image
+from app.services.mongo_database import get_company_info, add_chat_message, update_wa_message_whats_app_status
+from app.services.chatgpt import ChatGpt, MODELS
+from app.templates.template_management import load_prompt_template
+from app.services.telegram import TelegramService
+from datetime import datetime, timezone
 from dotenv import load_dotenv
-from services.telegram import TelegramService
+
 
 # Configure logging
 logging.basicConfig(
@@ -146,7 +141,7 @@ async def send_messages(request: MessageRequest):
             time_now = datetime.now(timezone.utc)
             logger.info(f"Manin BATCH: {batch}")
             schedule_whatsapp_message(message_id, user_id, title_msg, message, batch, time_now, image, doc_file)
-            asyncio.sleep(4)
+            await asyncio.sleep(4)
         return {"status": "sent", "message": f"Message sent"}
 
 # Route to send a WhatsApp message to improved with ChatGpt
