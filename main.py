@@ -16,7 +16,8 @@ from services.whatsapp import download_media, schedule_whatsapp_message, update_
 from services.mongo_database import activate_number_if_baja, baja_number, get_company_info, add_chat_message, get_whatsapp_credentials, update_wa_message_whats_app_status
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
-from services.chatgpt import ChatGpt, MODELS, PROMPT, SYSTEM_INSTRUCTION
+from services.chatgpt import ChatGpt, MODELS
+from templates.template_management import load_prompt_template
 from datetime import datetime, timezone, timedelta
 import pytz
 from dotenv import load_dotenv
@@ -160,9 +161,13 @@ async def chat_suggestion(request: AiSuggestion):
     title_msg = request.title
     message = request.message
 
-    chat = ChatGpt(MODELS['GPT_4O_mini'], SYSTEM_INSTRUCTION)
+    prompt_template = load_prompt_template("message_suggestion")
+    prompt_value = prompt_template['prompt']
+    system_instruction_value = prompt_template['system_instruction']
 
-    prompt = PROMPT.replace("__TEXT_TITLE__", title_msg)
+    chat = ChatGpt(MODELS['GPT_4O_mini'], system_instruction_value)
+
+    prompt = prompt_value.replace("__TEXT_TITLE__", title_msg)
     prompt = prompt.replace("__TEXT_MESSAGE__", message)
 
     outputs = chat.generate(prompt=prompt, respose_format=AiSuggestion)
