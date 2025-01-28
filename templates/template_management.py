@@ -26,3 +26,10 @@ def load_dynamic_template(name: str, title=None, message=None, media_id=None):
         template_schema["components"][1]["parameters"][1]["text"] = message
 
     return template_schema
+
+def load_prompt_template(name:str):
+   if "message_suggestion" == name:
+       template_path = "templates/schema_prompts/message_suggestion.json"   
+   with open(template_path, "r") as file:
+       template_schema = json.load(file)
+   return template_schema
