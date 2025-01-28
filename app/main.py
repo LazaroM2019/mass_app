@@ -3,25 +3,19 @@ from fastapi import FastAPI, HTTPException, Request, Query
 from fastapi.responses import PlainTextResponse, StreamingResponse
 from pydantic import BaseModel
 import logging
-import os
 import time
 import asyncio
-import requests
-import traceback
-from fastapi.middleware.cors import CORSMiddleware
-# from pymongo import MongoClient
-from utils.token_management import refresh_token_task
-from utils.general import batch_list
-from services.whatsapp import download_media, schedule_whatsapp_message, update_business_image
-from services.mongo_database import activate_number_if_baja, baja_number, get_company_info, add_chat_message, get_whatsapp_credentials, update_wa_message_whats_app_status
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.interval import IntervalTrigger
-from services.chatgpt import ChatGpt, MODELS, PROMPT, SYSTEM_INSTRUCTION
-from datetime import datetime, timezone, timedelta
 import pytz
+from fastapi.middleware.cors import CORSMiddleware
+from app.utils.general import batch_list
+from app.services.whatsapp import download_media, schedule_whatsapp_message, update_business_image
+from app.services.mongo_database import activate_number_if_baja, baja_number, get_company_info, add_chat_message, get_whatsapp_credentials, update_wa_message_whats_app_status
+from app.services.chatgpt import ChatGpt, MODELS
+from app.templates.template_management import load_prompt_template
+from app.services.telegram import TelegramService
+from datetime import datetime, timezone
 from dotenv import load_dotenv
-from services.telegram import TelegramService
-import io
+
 
 # Configure logging
 logging.basicConfig(
@@ -34,19 +28,6 @@ load_dotenv()
 logger = logging.getLogger("uvicorn")
 telegram_service = TelegramService()
 
-# MongoDB connection settings
-# CONNECTION_STRING = os.getenv("MONGODB_CONNECTION_STRING")
-# DATABASE_NAME = os.getenv("MONGODB_DATABASE_NAME")
-# COLLECTION_NAME = os.getenv("MONGODB_COLLECTION_NAME")
-
-# Connect to MongoDB
-# client = MongoClient(CONNECTION_STRING)
-
-# Access the database and collection
-# database = client[DATABASE_NAME]
-# collection = database[COLLECTION_NAME]
-
-
 # FastAPI app
 app = FastAPI()
 
@@ -57,22 +38,6 @@ allow_credentials=True,
 allow_methods=["*"],
 allow_headers=["*"]
 )
-
-# scheduler = BackgroundScheduler()
-
-# scheduler.add_job(
-#     refresh_token_task,
-#     trigger=IntervalTrigger(days=50),
-#     id="refresh_token_task",
-#     replace_existing=True
-# )
-
-# Start the scheduler
-# scheduler.start()
-
-# @app.on_event("shutdown")
-# def shutdown_event():
-#     scheduler.shutdown()
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -160,14 +125,23 @@ async def chat_suggestion(request: AiSuggestion):
     title_msg = request.title
     message = request.message
 
-    chat = ChatGpt(MODELS['GPT_4O_mini'], SYSTEM_INSTRUCTION)
+    prompt_template = load_prompt_template("message_suggestion")
+    prompt_value = prompt_template['prompt']
+    system_instruction_value = prompt_template['system_instruction']
 
-    prompt = PROMPT.replace("__TEXT_TITLE__", title_msg)
+
+    chat = ChatGpt(MODELS['GPT_4O_mini'], system_instruction_value)
+
+    prompt = prompt_value.replace("__TEXT_TITLE__", title_msg)
     prompt = prompt.replace("__TEXT_MESSAGE__", message)
 
     outputs = chat.generate(prompt=prompt, respose_format=AiSuggestion)
 
     return outputs
+
+@app.post("/ai/summary")
+async def messages_summary(request: AiSuggestion):
+    pass
 
 @app.post("/webhook")
 async def webhook(request: Request):
