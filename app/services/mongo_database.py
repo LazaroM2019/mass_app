@@ -33,7 +33,7 @@ class MongoDBService:
         self.client.close()
 
 @staticmethod
-def add_chat_message(company_id, number, text, date, is_client, status, message_id, client_name="", media_id=""):
+def add_chat_message(company_id, number, text, date, is_client, status, message_id, client_name="", media_id="", media_type=""):
     mongo_service = MongoDBService()
 
     query = {"companyId": company_id, "number": number}
@@ -51,7 +51,8 @@ def add_chat_message(company_id, number, text, date, is_client, status, message_
             "new": is_client,
             "status": status,
             "id": message_id,
-            "media_id": media_id
+            "media_id": media_id,
+            "media_type": media_type
             }
         }
     }
@@ -138,29 +139,46 @@ def get_company_info(search_value, search_by="user", field_required="id"):
             return str(company["name"])
 
     return None
-# def get_company_id_from_phonenumber(phone_number):
-#     mongo_service = MongoDBService()
 
-#     filter = {"phone": phone_number} 
+@staticmethod
+def baja_number(company_id, client_name, client_number):
+    mongo_service = MongoDBService()
 
-#     company = mongo_service.get_document_by_filter("companies", filter)
+    mongo_service.upsert_to_collection("bajas", {
+        "company_id": company_id
+    }, 
+    {
+        "$set": {"company_id": company_id},
+        "$push": {"numbers": { "name": client_name, "number": client_number } }
+    })
 
-#     if company is not None and company["_id"] is not None:
-#         return str(company["_id"])
+@staticmethod
+def activate_number_if_baja(company_id, client_number):
+    mongo_service = MongoDBService()
     
-#     return None
+    mongo_service.update_one("bajas", 
+        {"company_id": company_id, "numbers.number": client_number},
+        {"$pull": {"numbers": {"number": client_number}}} 
+    )
 
-# @staticmethod
-# def get_company_from_user(user_id, field_required):
-#     mongo_service = MongoDBService()
 
-#     filter = {"users":  ObjectId(user_id) }
+@staticmethod
+def is_number_baja(company_id, client_number):
+    mongo_service = MongoDBService()
+        
+    record = mongo_service.get_document_by_filter("bajas", {"company_id": company_id, "numbers.number": client_number})
 
-#     company = mongo_service.get_document_by_filter("companies", filter)
+    return record != None
 
-#     if company is not None:
-#         if field_required == "id" and company["_id"] is not None:
-#             return str(company["_id"])
-#         if field_required == "name" and company["name"] is not None:
-#             return str(company["name"])
-#     return None
+@staticmethod
+def get_company(company_id):
+    mongo_service = MongoDBService()
+
+    obj_company_id = ObjectId(company_id)
+    filter_id = {"_id": obj_company_id} 
+    company_by_id = mongo_service.get_document_by_filter("companies", filter_id)
+
+    if company_by_id is not None:
+        return company_by_id    
+    
+    return None

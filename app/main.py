@@ -1,15 +1,15 @@
+import base64
 from fastapi import FastAPI, HTTPException, Request, Query
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import PlainTextResponse, StreamingResponse
 from pydantic import BaseModel
 import logging
-import os
 import time
 import asyncio
 import pytz
 from fastapi.middleware.cors import CORSMiddleware
 from app.utils.general import batch_list
-from app.services.whatsapp import schedule_whatsapp_message, update_business_image
-from app.services.mongo_database import get_company_info, add_chat_message, update_wa_message_whats_app_status
+from app.services.whatsapp import download_media, schedule_whatsapp_message, update_business_image
+from app.services.mongo_database import activate_number_if_baja, baja_number, get_company_info, add_chat_message, get_whatsapp_credentials, update_wa_message_whats_app_status
 from app.services.chatgpt import ChatGpt, MODELS
 from app.templates.template_management import load_prompt_template
 from app.services.telegram import TelegramService
@@ -28,19 +28,6 @@ load_dotenv()
 logger = logging.getLogger("uvicorn")
 telegram_service = TelegramService()
 
-# MongoDB connection settings
-# CONNECTION_STRING = os.getenv("MONGODB_CONNECTION_STRING")
-# DATABASE_NAME = os.getenv("MONGODB_DATABASE_NAME")
-# COLLECTION_NAME = os.getenv("MONGODB_COLLECTION_NAME")
-
-# Connect to MongoDB
-# client = MongoClient(CONNECTION_STRING)
-
-# Access the database and collection
-# database = client[DATABASE_NAME]
-# collection = database[COLLECTION_NAME]
-
-
 # FastAPI app
 app = FastAPI()
 
@@ -51,22 +38,6 @@ allow_credentials=True,
 allow_methods=["*"],
 allow_headers=["*"]
 )
-
-# scheduler = BackgroundScheduler()
-
-# scheduler.add_job(
-#     refresh_token_task,
-#     trigger=IntervalTrigger(days=50),
-#     id="refresh_token_task",
-#     replace_existing=True
-# )
-
-# Start the scheduler
-# scheduler.start()
-
-# @app.on_event("shutdown")
-# def shutdown_event():
-#     scheduler.shutdown()
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -107,6 +78,10 @@ class AiSuggestion(BaseModel):
 class CompanyImageRequest(BaseModel):
     companyId: str
     image: str
+
+class MediaContentRequest(BaseModel):
+    companyId: str
+    media_id: str
 
 # Route to send a WhatsApp message to multiple recipients
 @app.post("/chat/send")
@@ -198,14 +173,31 @@ async def webhook(request: Request):
                 phone_number_bot = changes.get("metadata").get("display_phone_number")
                 phone_number_client = messages.get("from")
                 whatsapp_message_id = messages.get("id")
-                message = messages.get("text").get("body")
-                logger.info(f"message: {message} to: {phone_number_client}")
+                msg_type = messages.get("type")
+                media_id = None
+                message = ""
 
-                if len(message) > 0:
+                if msg_type == "text":
+                    message = messages.get("text").get("body")
+                    logger.info(f"message: {message} to: {phone_number_client}")
+                
+                elif msg_type in ["image", "document"]:
+                    media = messages.get(msg_type, {})
+                    message = media.get("caption", "")
+                    media_id = media.get("id")
+                    logger.info(f"message: {message} to: {phone_number_client} with media: {msg_type}")
+                
+                if message == "baja":
+                    company_id = get_company_info(phone_number_bot, "phone", "id")
+                    logger.info(f"New baja for: {company_id} - {client_name}")
+                    baja_number(company_id, client_name, phone_number_client)
+
+                elif len(message) > 0 or media_id != None:
                     company_id = get_company_info(phone_number_bot, "phone", "id")
                     logger.info(f"company: {company_id}")
                     if company_id:
-                        add_chat_message(company_id, phone_number_client, message, datetime.now(timezone.utc), True, 'delivered', whatsapp_message_id, client_name)
+                        add_chat_message(company_id, phone_number_client, message, datetime.now(timezone.utc), True, 'delivered', whatsapp_message_id, client_name, media_id, msg_type)
+                        activate_number_if_baja(company_id, phone_number_client)
 
         
         return {"status": "success"}
@@ -233,3 +225,15 @@ async def update_company_image(request: CompanyImageRequest):
     image = request.image
 
     update_business_image(company_id, image)
+
+@app.get("/company/{company_id}/media/{media_id}")
+async def get_media_content(company_id: str, media_id: str):
+
+    account_id = get_whatsapp_credentials(company_id)
+    logger.info(f"downloading image for: {account_id} - {media_id}")
+
+    media_content = download_media(media_id, account_id)
+    
+    base64_encoded = base64.b64encode(media_content).decode("utf-8")
+    
+    return {"base64_data": base64_encoded}

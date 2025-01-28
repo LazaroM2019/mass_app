@@ -6,7 +6,7 @@ import re
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.executors.pool import ThreadPoolExecutor
 from app.utils.logger import logger
-from app.services.mongo_database import add_chat_message, get_company_info, get_whatsapp_credentials, update_message_whats_app_status
+from app.services.mongo_database import add_chat_message, get_company, get_company_info, get_whatsapp_credentials, is_number_baja, update_message_whats_app_status
 from app.templates.template_management import load_dynamic_template
 from app.utils.image_procesor import save_base64_to_jpeg
 from app.services.telegram import TelegramService
@@ -40,13 +40,17 @@ def send_whatsapp_message(message_id, user_id, number, title_front, text_front, 
     logger.info(f"Company: {company_id}")
     account_id = get_whatsapp_credentials(company_id)
 
+    if is_number_baja(company_id, number):
+        logger.info(f"Attempt to send message to a \"baja\" number: {number}")
+        return {"status": "error", "error": "baja number"}
+
     try:
         if title_front == "chat_only":
             logger.info(f"Sending chat message to: {number}")
             response = send_chat_message(company_id, account_id, number, message, image_base64, doc_base64)
         else:
             logger.info(f"Sending initial message to: {number}")
-            response = send_initial_message(message_id, account_id, number, title, message, image_base64, doc_base64)
+            response = send_initial_message(company_id, message_id, account_id, number, title, message, image_base64, doc_base64)
 
         if response.status_code == 200:
             json_response = response.json()
@@ -65,6 +69,10 @@ def send_whatsapp_message(message_id, user_id, number, title_front, text_front, 
 # Function to schedule a WhatsApp message
 def schedule_whatsapp_message(message_id, user_id, title, message, numbers, send_time, image, doc_file):
     for number in numbers:
+        now = datetime.now(timezone.utc)
+        if send_time < now:
+            send_time = now
+
         scheduler.add_job(
             send_whatsapp_message,
             'date',
@@ -193,7 +201,7 @@ def update_business_image(company_id, image_base64):
         return {"status": "failed", "error": response.text}
 
 
-def send_initial_message(message_id, account_id, number, title, message, image_base64, doc_base64):
+def send_initial_message(company_id, message_id, account_id, number, title, message, image_base64, doc_base64):
     payload = {
         "messaging_product": "whatsapp",
         "to": number,
@@ -218,6 +226,12 @@ def send_initial_message(message_id, account_id, number, title, message, image_b
         
         payload["template"] = load_dynamic_template(name="general_doc_dynamic", title=title, message=message, media_id=number_media_id)
 
+    company = get_company(company_id)
+
+    template = company.get("template", "")
+    if template != "":
+        payload["template"]["name"] += template
+
     URL_WHATSAPP = f"https://graph.facebook.com/v21.0/{account_id}/messages"
     response = requests.post(URL_WHATSAPP, headers=HEADERS, json=payload)
 
@@ -236,7 +250,7 @@ def send_chat_message(company_id, account_id, number, message, image_base64, doc
 
     payload = {
         "messaging_product": "whatsapp",
-        "to": "59897222006",
+        "to": number,
         "recipient_type": "individual"
     }
 
@@ -275,6 +289,33 @@ def send_chat_message(company_id, account_id, number, message, image_base64, doc
     message_id_whatsApp = json_response['messages'][0].get("id")
     
     if response.status_code == 200:
-        add_chat_message(company_id, number, message, datetime.now(timezone.utc), False, 'delivered', message_id_whatsApp, "", number_media_id)
+        add_chat_message(company_id, number, message, datetime.now(timezone.utc), False, 'delivered', message_id_whatsApp, "", number_media_id, payload["type"])
 
     return response
+
+def download_media(media_id, number_id):
+    url = f"https://graph.facebook.com/v21.0/{media_id}?phone_number_id={number_id}"
+
+    response = requests.get(url, headers=HEADERS)
+
+    if response.status_code != 200:
+        logger.info("GET media url failed")
+        return None
+    
+    data = response.json()
+
+    media_url = data["url"]
+
+    logger.info(f"Media URL: {media_url}")
+
+    url = f"https://graph.facebook.com/v21.0/{media_url}"
+
+    response = requests.get(media_url, headers=HEADERS)
+
+    if response.status_code != 200:
+        logger.info("Download media failed")
+        return None
+    
+    media_content = response.content
+    
+    return media_content
