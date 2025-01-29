@@ -141,6 +141,15 @@ def get_company_info(search_value, search_by="user", field_required="id"):
     return None
 
 @staticmethod
+def get_message_history(msgId):
+    mongo_service = MongoDBService()
+
+    filter = {"_id": ObjectId(msgId)}
+    message = mongo_service.get_document_by_filter("chats_history", filter)
+
+    return message
+
+@staticmethod
 def baja_number(company_id, client_name, client_number):
     mongo_service = MongoDBService()
 

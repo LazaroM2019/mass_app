@@ -13,10 +13,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from utils.token_management import refresh_token_task
 from utils.general import batch_list
 from services.whatsapp import download_media, schedule_whatsapp_message, update_business_image
-from services.mongo_database import activate_number_if_baja, baja_number, get_company_info, add_chat_message, get_whatsapp_credentials, update_wa_message_whats_app_status
+from services.mongo_database import get_message_history, activate_number_if_baja, baja_number, get_company_info, add_chat_message, get_whatsapp_credentials, update_wa_message_whats_app_status
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
-from services.chatgpt import ChatGpt, MODELS
+from services.chatgpt import ChatGpt, MODELS, prepare_message_for_prompt
 from templates.template_management import load_prompt_template
 from datetime import datetime, timezone, timedelta
 import pytz
@@ -111,6 +111,17 @@ class AiSuggestion(BaseModel):
     title: str
     message: str
 
+class AiSummary(BaseModel):
+    messageId: str
+
+class AiSummaryResponse(BaseModel):
+    summary: str
+    travel_intent: bool
+    destination: str
+    dates: str
+    budget: str
+    preferences: list[str]
+
 class CompanyImageRequest(BaseModel):
     companyId: str
     image: str
@@ -171,6 +182,28 @@ async def chat_suggestion(request: AiSuggestion):
     prompt = prompt.replace("__TEXT_MESSAGE__", message)
 
     outputs = chat.generate(prompt=prompt, respose_format=AiSuggestion)
+
+    return outputs
+
+# Route to get a chat history and make a summary
+@app.post("/ai/summary")
+async def chat_suggestion(request: AiSummary):
+    message_id = request.messageId
+
+    list_msg = get_message_history(message_id)
+
+    dict_msg = prepare_message_for_prompt(list_msg)
+
+
+    prompt_template = load_prompt_template("message_summary")
+    prompt_value = prompt_template['prompt']
+    system_instruction_value = prompt_template['system_instruction']
+
+    chat = ChatGpt(MODELS['GPT_4O_mini'], system_instruction_value)
+
+    prompt = prompt_value.replace("_TEXT_MESSAGE__", str(dict_msg))
+
+    outputs = chat.generate(prompt=prompt, respose_format=AiSummaryResponse)
 
     return outputs
 

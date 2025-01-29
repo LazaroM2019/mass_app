@@ -80,3 +80,12 @@ class ChatGpt:
             'refusal': event.refusal,
             'usage': completion.usage.to_dict()
         }
+
+@staticmethod
+def prepare_message_for_prompt(obj_message: dict):
+    res_message = {}
+    messages_list = obj_message.get("messages", [])
+    for value in messages_list:
+        key_date = str(value["date"]).split(".")[0]
+        res_message[key_date] = value["text"]
+    return res_message
