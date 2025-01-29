@@ -142,9 +142,8 @@ async def send_messages(request: MessageRequest):
 
     if utc_datetime > datetime.now(timezone.utc):
         # Format the datetime as needed
-        send_time = utc_datetime.strftime("%Y-%m-%d %H:%M:%S")
-        schedule_whatsapp_message(message_id, user_id, title_msg, message, numbers, send_time, image, doc_file)
-        return {"status": "scheduled", "message": f"Message scheduled for {send_time}"}
+        schedule_whatsapp_message(message_id, user_id, title_msg, message, numbers, utc_datetime, image, doc_file)
+        return {"status": "scheduled", "message": f"Message scheduled for {utc_datetime}"}
     else:
     # Send message to each recipient
         batch_size = len(numbers)//5 or 1
