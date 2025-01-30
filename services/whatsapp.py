@@ -11,6 +11,7 @@ from utils.image_procesor import save_base64_to_jpeg
 import uuid
 import re
 from services.telegram import TelegramService
+from apscheduler.triggers.date import DateTrigger
 
 # Initialize the scheduler (ensure it's started only once)
 executors = {
@@ -69,16 +70,17 @@ def send_whatsapp_message(message_id, user_id, number, title_front, text_front, 
 # Function to schedule a WhatsApp message
 def schedule_whatsapp_message(message_id, user_id, title, message, numbers, send_time, image, doc_file):
     for number in numbers:
+        trigger = DateTrigger()
         now = datetime.now(timezone.utc)
-        if send_time < now:
-            send_time = now
+        if send_time > now:
+            logger.info(f"Future schedule: {send_time}")
+            trigger = DateTrigger(run_date=send_time)
 
         scheduler.add_job(
             send_whatsapp_message,
-            'date',
-            run_date=send_time,
+            trigger,
             args=[message_id, user_id, number, title, message, image, doc_file],
-            misfire_grace_time=30 
+            misfire_grace_time=120 
         )
 
 def upload_media(phone_number_id: str, file_name: str, type_of_file: str):
