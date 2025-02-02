@@ -191,29 +191,18 @@ def get_company(company_id):
         return company_by_id    
     
     return None
-# def get_company_id_from_phonenumber(phone_number):
-#     mongo_service = MongoDBService()
 
-#     filter = {"phone": phone_number} 
+def add_message_summary(message_id, gpt_output):
+    mongo_service = MongoDBService()
 
-#     company = mongo_service.get_document_by_filter("companies", filter)
-
-#     if company is not None and company["_id"] is not None:
-#         return str(company["_id"])
+    document = {
+        "messageId": message_id,
+        "summary": gpt_output["summary"],
+        "travel_intent": gpt_output["travel_intent"],
+        "destination": gpt_output["destination"],
+        "dates": gpt_output["dates"],
+        "budget": gpt_output["budget"],
+        "preferences": gpt_output["preferences"],
+    }
     
-#     return None
-
-# @staticmethod
-# def get_company_from_user(user_id, field_required):
-#     mongo_service = MongoDBService()
-
-#     filter = {"users":  ObjectId(user_id) }
-
-#     company = mongo_service.get_document_by_filter("companies", filter)
-
-#     if company is not None:
-#         if field_required == "id" and company["_id"] is not None:
-#             return str(company["_id"])
-#         if field_required == "name" and company["name"] is not None:
-#             return str(company["name"])
-#     return None
+    mongo_service.write_to_collection(collection_name="message_summaries", data=document)

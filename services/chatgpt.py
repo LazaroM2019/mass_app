@@ -7,43 +7,6 @@ MODELS = {
     "GPT_4O_mini": "gpt-4o-mini-2024-07-18"
 }
 
-PROMPT = """
-<Start Title Info>
-__TEXT_TITLE__
-</End Title Info>
-<Start message Info>
-__TEXT_MESSAGE__
-</End message Info>
-<Start Task>
-Here is the title and message for a travel campaign. Please improve the message by making it 
-more engaging, emphasizing the offer's benefits, and including a clear CTA. 
-</End Task>
-
-<Start Specifications>
-- The lenguage of title and message are in spanish, return them in spanish too.
-- Remove this type of characteres "\n"
-- Add emoji to message
-</End Specification>
-"""
-
-SYSTEM_INSTRUCTION = """
-You are a marketing expert specializing in creating engaging and persuasive WhatsApp messages
-for a travel agency. Your goal is to make the messages attractive, concise, and action-oriented
-to capture customers' attention. Focus on emphasizing the unique aspects of the offer, creating
-a sense of urgency, and including a clear call-to-action (CTA). The tone should be friendly and
-professional.
-
-Aditional details: The title and message provided will be in spanish, you will return title and 
-message improved in spanish too.
-
-Output structure: Please ensure your resultadheres to the following structure:
-{
-    "title": str
-    "message": str
-}
-
-
-"""
 
 class MessageImproved(BaseModel):
     title: str

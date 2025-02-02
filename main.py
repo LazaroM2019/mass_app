@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from utils.token_management import refresh_token_task
 from utils.general import batch_list
 from services.whatsapp import download_media, schedule_whatsapp_message, update_business_image
-from services.mongo_database import get_message_history, activate_number_if_baja, baja_number, get_company_info, add_chat_message, get_whatsapp_credentials, update_wa_message_whats_app_status
+from services.mongo_database import add_message_summary, get_message_history, activate_number_if_baja, baja_number, get_company_info, add_chat_message, get_whatsapp_credentials, update_wa_message_whats_app_status
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from services.chatgpt import ChatGpt, MODELS, prepare_message_for_prompt
@@ -203,6 +203,8 @@ async def chat_suggestion(request: AiSummary):
     prompt = prompt_value.replace("_TEXT_MESSAGE__", str(dict_msg))
 
     outputs = chat.generate(prompt=prompt, respose_format=AiSummaryResponse)
+
+    add_message_summary(message_id, outputs['output'])
 
     return outputs
 
